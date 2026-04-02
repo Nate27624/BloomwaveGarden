@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Bloomwave Garden</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <h1>Bloomwave Garden</h1>
+        <p>Tap anywhere. Watch the garden answer.</p>
+      </header>
+
+      <section class="stage-wrap">
+        <canvas id="game" width="960" height="540" aria-label="Bloomwave Garden game area"></canvas>
+
+        <div id="overlay" class="overlay">
+          <section id="home-screen" class="menu-panel">
+            <h2 id="overlay-title">Bloomwave Garden</h2>
+            <p id="overlay-text">Pixel farm vibes. Tap blooms, chain zaps, harvest crates.</p>
+            <p class="hint">Simple, chill, and trippy.</p>
+            <div class="menu-actions">
+              <button id="play-btn" type="button" class="menu-btn menu-icon-btn play-btn" aria-label="Play">
+                <svg class="menu-icon" viewBox="0 0 16 16" aria-hidden="true">
+                  <polygon points="4,2 13,8 4,14" fill="#1f1208"></polygon>
+                  <rect x="3" y="2" width="1" height="12" fill="#3a2412"></rect>
+                </svg>
+              </button>
+              <button id="leaderboard-btn" type="button" class="menu-btn menu-icon-btn" aria-label="Leaderboard">
+                <svg class="menu-icon" viewBox="0 0 16 16" aria-hidden="true">
+                  <rect x="4" y="2" width="8" height="2" fill="#2d1b0d"></rect>
+                  <rect x="3" y="4" width="10" height="5" fill="#3a2412"></rect>
+                  <rect x="6" y="9" width="4" height="2" fill="#2d1b0d"></rect>
+                  <rect x="5" y="11" width="6" height="2" fill="#3a2412"></rect>
+                  <rect x="4" y="13" width="8" height="1" fill="#2d1b0d"></rect>
+                </svg>
+              </button>
+            </div>
+          </section>
+
+          <section id="leaderboard-screen" class="menu-panel screen-hidden">
+            <h2>Leaderboard</h2>
+            <p class="hint">Ranked by Blooms. Crates break ties.</p>
+            <ol id="leaderboard-list" class="leaderboard-list"></ol>
+            <div class="menu-actions single-action">
+              <button id="leaderboard-back-btn" type="button" class="menu-btn">Back</button>
+            </div>
+          </section>
+        </div>
+
+        <div class="hud is-hidden">
+          <div class="chip">Blooms: <span id="score">0</span></div>
+          <div class="chip">Harvest: <span id="calm">0/12</span></div>
+          <div class="chip">Crates: <span id="crates">0</span></div>
+        </div>
+
+        <div class="status is-hidden" id="status">Goal loading...</div>
+        <button id="menu-corner-btn" class="menu-corner is-hidden" type="button" aria-label="Open menu">
+          <svg class="menu-corner-icon" viewBox="0 0 16 16" aria-hidden="true">
+            <polygon points="2,8 8,3 14,8 14,9 13,9 13,14 9,14 9,10 7,10 7,14 3,14 3,9 2,9" fill="#4f2f14"></polygon>
+            <rect x="6" y="4" width="4" height="1" fill="#7f4c1f"></rect>
+          </svg>
+        </button>
+      </section>
+
+      <footer class="controls">
+        <button id="audio-btn" type="button">Enable Lofi</button>
+        <button id="restart-btn" type="button">New Session</button>
+      </footer>
+    </main>
+
+    <script src="game.js"></script>
+  </body>
+</html>

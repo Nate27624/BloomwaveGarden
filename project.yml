@@ -1,0 +1,35 @@
+name: BloomwaveGarden
+options:
+  bundleIdPrefix: com.nate27624
+  deploymentTarget:
+    iOS: "17.0"
+configs:
+  Debug: debug
+  Release: release
+targets:
+  BloomwaveGarden:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: BloomwaveGarden
+        excludes:
+          - WebBundle/**
+      - path: BloomwaveGarden/WebBundle
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nate27624.bloomwavegarden
+        PRODUCT_NAME: BloomwaveGarden
+        INFOPLIST_FILE: BloomwaveGarden/Info.plist
+        SWIFT_VERSION: 5.0
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_STYLE: Automatic
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 1.0
+    scheme:
+      testTargets: []

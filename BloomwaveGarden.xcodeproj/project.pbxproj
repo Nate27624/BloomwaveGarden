@@ -1,0 +1,389 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 63;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		03248A957AA444ECAF0C283F /* bed.png in Resources */ = {isa = PBXBuildFile; fileRef = E292D08A4CE50F7CDC811A84 /* bed.png */; };
+		104AF98DD00F172F32D2E8F0 /* GardenScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C8B8AC1799AE23C359A9232 /* GardenScene.swift */; };
+		207FBDACC63F65D6FBB45355 /* flower-gold.png in Resources */ = {isa = PBXBuildFile; fileRef = 447BE9D54A306158B79F57EB /* flower-gold.png */; };
+		2DD5B29D9BF5EF26BDED9FAD /* LofiAudioEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C73548E7227D3ACA04CBBBA1 /* LofiAudioEngine.swift */; };
+		3208A563A28788B5790C9985 /* WebGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 443114265130400987CF9640 /* WebGameView.swift */; };
+		339EA3A7993110D2C146F230 /* sprout-1.png in Resources */ = {isa = PBXBuildFile; fileRef = EF43C79DD2A0906FEA71176E /* sprout-1.png */; };
+		34940DF48EDCA38565DAE637 /* sprout-2.png in Resources */ = {isa = PBXBuildFile; fileRef = F492C5687E5F41F037D2C4C1 /* sprout-2.png */; };
+		3C426BAD367F869BF76BA60C /* GameHUDModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3C0FE3EF6D6382076C77D1 /* GameHUDModel.swift */; };
+		5FCCA739C11DBC61CED8C43D /* BloomwaveGardenApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DFD08AD47087EE0BC496A4C /* BloomwaveGardenApp.swift */; };
+		6EC3BA28BA887A6B78D2D7EE /* bloom-amber.png in Resources */ = {isa = PBXBuildFile; fileRef = 626CC97C6F5F93940943925C /* bloom-amber.png */; };
+		84B007E659E69B8EEE3FEEA0 /* WebBundle in Resources */ = {isa = PBXBuildFile; fileRef = 9774D7F50E0A99A2FF25B58E /* WebBundle */; };
+		9CF68B0633B56337B141D372 /* spirit-amber.png in Resources */ = {isa = PBXBuildFile; fileRef = 198510CF5399579EB41AA6AF /* spirit-amber.png */; };
+		AB172A1AB673160747562D5F /* flower-amber.png in Resources */ = {isa = PBXBuildFile; fileRef = 1F0D9D5D7D78069DA06698F0 /* flower-amber.png */; };
+		B4C354E11D0F528A77115D14 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 23622F48548C138825B826BD /* Assets.xcassets */; };
+		CA233F06D4E540E15B64DA52 /* bloom-teal.png in Resources */ = {isa = PBXBuildFile; fileRef = 3859313DEBB13A20B813B5F4 /* bloom-teal.png */; };
+		CD10CACF4224CB5B54507604 /* spirit-teal.png in Resources */ = {isa = PBXBuildFile; fileRef = C7DDC4B57BB913FED07E8058 /* spirit-teal.png */; };
+		D1B6AC1338E3FA66399B4293 /* flower-teal.png in Resources */ = {isa = PBXBuildFile; fileRef = 3BFB2D8DCDC7382498651D96 /* flower-teal.png */; };
+		ECBE5C5B7DE49BB9FAC62E14 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9496EE90F49B1DA72A7770E3 /* ContentView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		198510CF5399579EB41AA6AF /* spirit-amber.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "spirit-amber.png"; sourceTree = "<group>"; };
+		1DFD08AD47087EE0BC496A4C /* BloomwaveGardenApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BloomwaveGardenApp.swift; sourceTree = "<group>"; };
+		1F0D9D5D7D78069DA06698F0 /* flower-amber.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "flower-amber.png"; sourceTree = "<group>"; };
+		22FCF81E9E45CE615EC10653 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		23622F48548C138825B826BD /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		3859313DEBB13A20B813B5F4 /* bloom-teal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "bloom-teal.png"; sourceTree = "<group>"; };
+		3BFB2D8DCDC7382498651D96 /* flower-teal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "flower-teal.png"; sourceTree = "<group>"; };
+		3C8B8AC1799AE23C359A9232 /* GardenScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GardenScene.swift; sourceTree = "<group>"; };
+		443114265130400987CF9640 /* WebGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebGameView.swift; sourceTree = "<group>"; };
+		447BE9D54A306158B79F57EB /* flower-gold.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "flower-gold.png"; sourceTree = "<group>"; };
+		626CC97C6F5F93940943925C /* bloom-amber.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "bloom-amber.png"; sourceTree = "<group>"; };
+		9496EE90F49B1DA72A7770E3 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		9774D7F50E0A99A2FF25B58E /* WebBundle */ = {isa = PBXFileReference; lastKnownFileType = folder; name = WebBundle; path = BloomwaveGarden/WebBundle; sourceTree = SOURCE_ROOT; };
+		9E3C0FE3EF6D6382076C77D1 /* GameHUDModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameHUDModel.swift; sourceTree = "<group>"; };
+		C73548E7227D3ACA04CBBBA1 /* LofiAudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LofiAudioEngine.swift; sourceTree = "<group>"; };
+		C7DDC4B57BB913FED07E8058 /* spirit-teal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "spirit-teal.png"; sourceTree = "<group>"; };
+		E292D08A4CE50F7CDC811A84 /* bed.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = bed.png; sourceTree = "<group>"; };
+		EF43C79DD2A0906FEA71176E /* sprout-1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "sprout-1.png"; sourceTree = "<group>"; };
+		F492C5687E5F41F037D2C4C1 /* sprout-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "sprout-2.png"; sourceTree = "<group>"; };
+		F98D04F52D4E50F662F3D6E3 /* BloomwaveGarden.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BloomwaveGarden.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		12783E2F57D3537D32198BFA /* SpriteTextures */ = {
+			isa = PBXGroup;
+			children = (
+				E292D08A4CE50F7CDC811A84 /* bed.png */,
+				626CC97C6F5F93940943925C /* bloom-amber.png */,
+				3859313DEBB13A20B813B5F4 /* bloom-teal.png */,
+				1F0D9D5D7D78069DA06698F0 /* flower-amber.png */,
+				447BE9D54A306158B79F57EB /* flower-gold.png */,
+				3BFB2D8DCDC7382498651D96 /* flower-teal.png */,
+				198510CF5399579EB41AA6AF /* spirit-amber.png */,
+				C7DDC4B57BB913FED07E8058 /* spirit-teal.png */,
+				EF43C79DD2A0906FEA71176E /* sprout-1.png */,
+				F492C5687E5F41F037D2C4C1 /* sprout-2.png */,
+			);
+			path = SpriteTextures;
+			sourceTree = "<group>";
+		};
+		17D8D72759E51A7D55EADD85 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F98D04F52D4E50F662F3D6E3 /* BloomwaveGarden.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		5E3F5C4F70FC01B24DDB208A /* BloomwaveGarden */ = {
+			isa = PBXGroup;
+			children = (
+				23622F48548C138825B826BD /* Assets.xcassets */,
+				1DFD08AD47087EE0BC496A4C /* BloomwaveGardenApp.swift */,
+				9496EE90F49B1DA72A7770E3 /* ContentView.swift */,
+				9E3C0FE3EF6D6382076C77D1 /* GameHUDModel.swift */,
+				3C8B8AC1799AE23C359A9232 /* GardenScene.swift */,
+				22FCF81E9E45CE615EC10653 /* Info.plist */,
+				C73548E7227D3ACA04CBBBA1 /* LofiAudioEngine.swift */,
+				443114265130400987CF9640 /* WebGameView.swift */,
+				12783E2F57D3537D32198BFA /* SpriteTextures */,
+			);
+			path = BloomwaveGarden;
+			sourceTree = "<group>";
+		};
+		F43E58C4A6C7B68EABC20180 = {
+			isa = PBXGroup;
+			children = (
+				9774D7F50E0A99A2FF25B58E /* WebBundle */,
+				5E3F5C4F70FC01B24DDB208A /* BloomwaveGarden */,
+				17D8D72759E51A7D55EADD85 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		685365FC7AB96CA914E15A77 /* BloomwaveGarden */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 28E2A5DDBDCAF6D5915800D0 /* Build configuration list for PBXNativeTarget "BloomwaveGarden" */;
+			buildPhases = (
+				8E8B69ABBD9B371C95F602B3 /* Sources */,
+				D460E82E5F544DF403B2A65F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BloomwaveGarden;
+			packageProductDependencies = (
+			);
+			productName = BloomwaveGarden;
+			productReference = F98D04F52D4E50F662F3D6E3 /* BloomwaveGarden.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		CCE9E02346A55460794FC2B9 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					685365FC7AB96CA914E15A77 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 066B1720DA1DB631C9879080 /* Build configuration list for PBXProject "BloomwaveGarden" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = F43E58C4A6C7B68EABC20180;
+			minimizedProjectReferenceProxies = 1;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				685365FC7AB96CA914E15A77 /* BloomwaveGarden */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D460E82E5F544DF403B2A65F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B4C354E11D0F528A77115D14 /* Assets.xcassets in Resources */,
+				84B007E659E69B8EEE3FEEA0 /* WebBundle in Resources */,
+				03248A957AA444ECAF0C283F /* bed.png in Resources */,
+				6EC3BA28BA887A6B78D2D7EE /* bloom-amber.png in Resources */,
+				CA233F06D4E540E15B64DA52 /* bloom-teal.png in Resources */,
+				AB172A1AB673160747562D5F /* flower-amber.png in Resources */,
+				207FBDACC63F65D6FBB45355 /* flower-gold.png in Resources */,
+				D1B6AC1338E3FA66399B4293 /* flower-teal.png in Resources */,
+				9CF68B0633B56337B141D372 /* spirit-amber.png in Resources */,
+				CD10CACF4224CB5B54507604 /* spirit-teal.png in Resources */,
+				339EA3A7993110D2C146F230 /* sprout-1.png in Resources */,
+				34940DF48EDCA38565DAE637 /* sprout-2.png in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8E8B69ABBD9B371C95F602B3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5FCCA739C11DBC61CED8C43D /* BloomwaveGardenApp.swift in Sources */,
+				ECBE5C5B7DE49BB9FAC62E14 /* ContentView.swift in Sources */,
+				3C426BAD367F869BF76BA60C /* GameHUDModel.swift in Sources */,
+				104AF98DD00F172F32D2E8F0 /* GardenScene.swift in Sources */,
+				2DD5B29D9BF5EF26BDED9FAD /* LofiAudioEngine.swift in Sources */,
+				3208A563A28788B5790C9985 /* WebGameView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		85E3916B2058A643B1DADCB6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		9668F93F16B4B9AD3F79C8AD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4QJKW5H6GB;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = BloomwaveGarden/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nate27624.bloomwavegarden;
+				PRODUCT_NAME = BloomwaveGarden;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		BF37C7807AFD7400C5794553 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C1B6F29D780E060D0758D940 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4QJKW5H6GB;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = BloomwaveGarden/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nate27624.bloomwavegarden;
+				PRODUCT_NAME = BloomwaveGarden;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		066B1720DA1DB631C9879080 /* Build configuration list for PBXProject "BloomwaveGarden" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BF37C7807AFD7400C5794553 /* Debug */,
+				85E3916B2058A643B1DADCB6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		28E2A5DDBDCAF6D5915800D0 /* Build configuration list for PBXNativeTarget "BloomwaveGarden" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C1B6F29D780E060D0758D940 /* Debug */,
+				9668F93F16B4B9AD3F79C8AD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = CCE9E02346A55460794FC2B9 /* Project object */;
+}
