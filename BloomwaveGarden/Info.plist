@@ -21,7 +21,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>GameCenterLeaderboardID</key>
-	<string>com.yourcompany.bloomwave.total_score</string>
+	<string>com.nate27624.bloomwavegarden.total_blooms</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
     <key>UIApplicationSupportsMultipleScenes</key>

@@ -33,6 +33,7 @@
 		1F0D9D5D7D78069DA06698F0 /* flower-amber.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "flower-amber.png"; sourceTree = "<group>"; };
 		22FCF81E9E45CE615EC10653 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		23622F48548C138825B826BD /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		2B8F21659D1E4F49A0E4C901 /* BloomwaveGarden.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BloomwaveGarden.entitlements; sourceTree = "<group>"; };
 		3859313DEBB13A20B813B5F4 /* bloom-teal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "bloom-teal.png"; sourceTree = "<group>"; };
 		3BFB2D8DCDC7382498651D96 /* flower-teal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "flower-teal.png"; sourceTree = "<group>"; };
 		3C8B8AC1799AE23C359A9232 /* GardenScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GardenScene.swift; sourceTree = "<group>"; };
@@ -80,6 +81,7 @@
 			isa = PBXGroup;
 			children = (
 				23622F48548C138825B826BD /* Assets.xcassets */,
+				2B8F21659D1E4F49A0E4C901 /* BloomwaveGarden.entitlements */,
 				1DFD08AD47087EE0BC496A4C /* BloomwaveGardenApp.swift */,
 				9496EE90F49B1DA72A7770E3 /* ContentView.swift */,
 				9E3C0FE3EF6D6382076C77D1 /* GameHUDModel.swift */,
@@ -254,6 +256,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = BloomwaveGarden/BloomwaveGarden.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -342,6 +345,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = BloomwaveGarden/BloomwaveGarden.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;

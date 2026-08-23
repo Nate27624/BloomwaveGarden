@@ -10,6 +10,8 @@ final class GameCenterService: NSObject, GKGameCenterControllerDelegate {
   private var didConfigureAuthentication = false
   private var pendingLeaderboardPresentation = false
   private var pendingScoreSubmission = 0
+  private var pendingCrateContext = 0
+  private var pendingLeaderboardLoads: [(limit: Int, completion: ([[String: Any]]) -> Void)] = []
   private let leaderboardID: String?
 
   private override init() {
@@ -51,15 +53,32 @@ final class GameCenterService: NSObject, GKGameCenterControllerDelegate {
     presentLeaderboardNow()
   }
 
-  func submitProgressScore(_ score: Int) {
+  func submitProgressScore(_ score: Int, crates: Int) {
     authenticateLocalPlayerIfNeeded()
     guard score > 0 else { return }
     guard GKLocalPlayer.local.isAuthenticated else {
-      pendingScoreSubmission = max(pendingScoreSubmission, score)
+      if score >= pendingScoreSubmission {
+        pendingScoreSubmission = score
+        pendingCrateContext = max(0, crates)
+      }
       return
     }
 
-    submitScoreNow(score)
+    submitScoreNow(score, crates: crates)
+  }
+
+  func loadLeaderboardEntries(limit: Int, completion: @escaping ([[String: Any]]) -> Void) {
+    authenticateLocalPlayerIfNeeded()
+    guard leaderboardID != nil else {
+      completion([])
+      return
+    }
+    guard GKLocalPlayer.local.isAuthenticated else {
+      pendingLeaderboardLoads.append((max(1, limit), completion))
+      return
+    }
+
+    loadLeaderboardEntriesNow(limit: limit, completion: completion)
   }
 
   func gameCenterViewControllerDidFinish(_ gameCenterViewController: GKGameCenterViewController) {
@@ -69,27 +88,75 @@ final class GameCenterService: NSObject, GKGameCenterControllerDelegate {
   private func flushPendingActions() {
     if pendingScoreSubmission > 0 {
       let score = pendingScoreSubmission
+      let crates = pendingCrateContext
       pendingScoreSubmission = 0
-      submitScoreNow(score)
+      pendingCrateContext = 0
+      submitScoreNow(score, crates: crates)
     }
 
     if pendingLeaderboardPresentation {
       pendingLeaderboardPresentation = false
       presentLeaderboardNow()
     }
+
+    let loads = pendingLeaderboardLoads
+    pendingLeaderboardLoads.removeAll()
+    for load in loads {
+      loadLeaderboardEntriesNow(limit: load.limit, completion: load.completion)
+    }
   }
 
-  private func submitScoreNow(_ score: Int) {
+  private func submitScoreNow(_ score: Int, crates: Int) {
     guard let leaderboardID else { return }
 
     GKLeaderboard.submitScore(
       score,
-      context: 0,
+      context: max(0, crates),
       player: GKLocalPlayer.local,
       leaderboardIDs: [leaderboardID]
     ) { _ in
       // Intentionally ignore transient Game Center failures.
     }
+  }
+
+  private func loadLeaderboardEntriesNow(limit: Int, completion: @escaping ([[String: Any]]) -> Void) {
+    guard let leaderboardID else {
+      completion([])
+      return
+    }
+    let localPlayerID = GKLocalPlayer.local.gamePlayerID
+
+    GKLeaderboard.loadLeaderboards(IDs: [leaderboardID]) { leaderboards, error in
+      guard error == nil, let leaderboard = leaderboards?.first else {
+        DispatchQueue.main.async { completion([]) }
+        return
+      }
+
+      let entryLimit = max(1, min(limit, 100))
+      leaderboard.loadEntries(
+        for: .global,
+        timeScope: .allTime,
+        range: NSRange(location: 1, length: entryLimit)
+      ) { _, entries, _, error in
+        let payload = error == nil
+          ? (entries ?? []).map { Self.payload(for: $0, localPlayerID: localPlayerID) }
+          : []
+        DispatchQueue.main.async {
+          completion(payload)
+        }
+      }
+    }
+  }
+
+  nonisolated private static func payload(for entry: GKLeaderboard.Entry, localPlayerID: String) -> [String: Any] {
+    [
+      "id": entry.player.gamePlayerID,
+      "name": entry.player.displayName,
+      "rank": entry.rank,
+      "totalBlooms": entry.score,
+      "totalCrates": max(0, entry.context),
+      "isLocal": entry.player.gamePlayerID == localPlayerID,
+    ]
   }
 
   private func presentLeaderboardNow() {

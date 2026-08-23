@@ -2,11 +2,13 @@ import SwiftUI
 import UIKit
 import WebKit
 import QuartzCore
+import GameKit
 
 struct WebGameView: UIViewRepresentable {
   final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
     private var lastBridgeMessageAt: CFTimeInterval = CACurrentMediaTime()
     private var lastFallbackToneAt: CFTimeInterval = -Double.greatestFiniteMagnitude
+    weak var webView: WKWebView?
 
     @objc func handleUserTap() {
       let nativeAudio = LofiAudioEngine.shared
@@ -53,11 +55,34 @@ struct WebGameView: UIViewRepresentable {
           GameCenterService.shared.showLeaderboard()
         case "submitScore":
           let score = self.intValue(payload["score"])
-          GameCenterService.shared.submitProgressScore(score)
+          let crates = self.intValue(payload["crates"])
+          GameCenterService.shared.submitProgressScore(score, crates: crates)
+        case "loadLeaderboard":
+          let limit = self.intValue(payload["limit"])
+          GameCenterService.shared.loadLeaderboardEntries(limit: limit > 0 ? limit : 10) { entries in
+            self.sendLeaderboardEntriesToWeb(entries)
+          }
         default:
           break
         }
       }
+    }
+
+    private func sendLeaderboardEntriesToWeb(_ entries: [[String: Any]]) {
+      let payload: [String: Any] = [
+        "entries": entries,
+        "localPlayerID": GKLocalPlayer.local.gamePlayerID,
+        "available": !entries.isEmpty,
+      ]
+
+      guard JSONSerialization.isValidJSONObject(payload),
+            let data = try? JSONSerialization.data(withJSONObject: payload),
+            let json = String(data: data, encoding: .utf8) else {
+        return
+      }
+
+      let script = "window.bloomwaveNativeGameCenter && window.bloomwaveNativeGameCenter.receiveLeaderboard(\(json));"
+      webView?.evaluateJavaScript(script)
     }
 
     private func handleNativeAudio(event: String, payload: [String: Any]) {
@@ -227,6 +252,7 @@ struct WebGameView: UIViewRepresentable {
     config.userContentController = userContentController
 
     let webView = WKWebView(frame: .zero, configuration: config)
+    context.coordinator.webView = webView
     webView.navigationDelegate = context.coordinator
     webView.isOpaque = false
     webView.backgroundColor = .black
