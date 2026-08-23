@@ -48,6 +48,13 @@
                 </svg>
               </button>
             </div>
+            <aside id="post-run-unlock-prompt" class="post-run-unlock-prompt screen-hidden" aria-label="Background unlock progress">
+              <div class="post-run-unlock-copy">
+                <span class="post-run-unlock-kicker">Map progress</span>
+                <p id="post-run-unlock-text">You earned 0 Blooms.</p>
+              </div>
+              <button id="post-run-unlock-btn" type="button" class="post-run-unlock-btn">View</button>
+            </aside>
           </section>
 
           <section id="leaderboard-screen" class="menu-panel screen-hidden">
@@ -121,6 +128,10 @@
               <button id="unlock-backgrounds-btn" type="button" class="unlock-btn">Unlock Selected $0.99</button>
               <button id="unlock-lifetime-btn" type="button" class="unlock-btn lifetime-btn">Lifetime Pass $4.99</button>
             </div>
+            <div id="lifetime-value" class="lifetime-value">
+              <span id="lifetime-value-kicker" class="lifetime-value-kicker">Best value</span>
+              <span id="lifetime-value-text" class="lifetime-value-text">Lifetime Pass unlocks every current background plus every future map.</span>
+            </div>
             <p id="funding-note" class="funding-note">Thank you for considering purchasing a background, these funds will be put towards developing more fun, simple games with no ads!</p>
             <div class="menu-actions single-action">
               <button id="premium-back-btn" type="button" class="menu-btn">Back</button>
@@ -138,6 +149,10 @@
                 <div class="background-preview-unlock">
                   <button id="background-preview-use-btn" type="button" class="unlock-btn">Use Background</button>
                   <p id="background-preview-blooms" class="background-preview-blooms">You have 0 Blooms</p>
+                  <div class="background-preview-progress" aria-hidden="true">
+                    <span id="background-preview-progress-fill"></span>
+                  </div>
+                  <p id="background-preview-remaining" class="background-preview-remaining">0 Blooms left</p>
                 </div>
                 <button id="background-preview-purchase-btn" type="button" class="unlock-btn">Purchase for $.50</button>
               </div>

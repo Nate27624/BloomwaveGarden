@@ -15,13 +15,21 @@ const premiumBackBtn = document.getElementById("premium-back-btn");
 const unlockBackgroundsBtn = document.getElementById("unlock-backgrounds-btn");
 const unlockLifetimeBtn = document.getElementById("unlock-lifetime-btn");
 const premiumSelectionEl = document.getElementById("premium-selection");
+const lifetimeValueEl = document.getElementById("lifetime-value");
+const lifetimeValueKickerEl = document.getElementById("lifetime-value-kicker");
+const lifetimeValueTextEl = document.getElementById("lifetime-value-text");
 const fundingNoteEl = document.getElementById("funding-note");
+const postRunUnlockPromptEl = document.getElementById("post-run-unlock-prompt");
+const postRunUnlockTextEl = document.getElementById("post-run-unlock-text");
+const postRunUnlockBtn = document.getElementById("post-run-unlock-btn");
 const backgroundPreviewModalEl = document.getElementById("background-preview-modal");
 const backgroundPreviewTitleEl = document.getElementById("background-preview-title");
 const backgroundPreviewCloseBtn = document.getElementById("background-preview-close-btn");
 const backgroundPreviewCanvas = document.getElementById("background-preview-canvas");
 const backgroundPreviewUseBtn = document.getElementById("background-preview-use-btn");
 const backgroundPreviewBloomsEl = document.getElementById("background-preview-blooms");
+const backgroundPreviewProgressFillEl = document.getElementById("background-preview-progress-fill");
+const backgroundPreviewRemainingEl = document.getElementById("background-preview-remaining");
 const backgroundPreviewPurchaseBtn = document.getElementById("background-preview-purchase-btn");
 const backgroundTileEls = document.querySelectorAll("[data-backdrop]");
 const leaderboardListEl = document.getElementById("leaderboard-list");
@@ -587,6 +595,18 @@ function syncBackdropTiles() {
   if (fundingNoteEl) {
     fundingNoteEl.textContent = backdropUnlocks.lifetime ? FUNDING_NOTE_LIFETIME_ACTIVE : FUNDING_NOTE_DEFAULT;
   }
+
+  if (lifetimeValueEl) {
+    lifetimeValueEl.classList.toggle("is-active", backdropUnlocks.lifetime);
+  }
+  if (lifetimeValueKickerEl) {
+    lifetimeValueKickerEl.textContent = backdropUnlocks.lifetime ? "Lifetime active" : "Best value";
+  }
+  if (lifetimeValueTextEl) {
+    lifetimeValueTextEl.textContent = backdropUnlocks.lifetime
+      ? "Every current background is unlocked, and future maps are included."
+      : "Lifetime Pass unlocks every current background plus every future map.";
+  }
   syncColorControls();
 }
 
@@ -644,6 +664,8 @@ function showBackgroundPreview(backdrop) {
   const unlocked = isBackdropUnlocked(backdrop);
   const name = BACKDROP_DISPLAY_NAMES[backdrop] || "Background";
   const price = BACKDROP_PRICE_LABELS[backdrop] || "$0.99";
+  const progress = getBackdropUnlockProgress(backdrop, stats);
+  const remainingBlooms = Math.max(0, Math.ceil(progress.targetBlooms - stats.totalBlooms));
 
   if (backgroundPreviewTitleEl) backgroundPreviewTitleEl.textContent = name;
   if (backgroundPreviewUseBtn) {
@@ -653,6 +675,14 @@ function showBackgroundPreview(backdrop) {
   }
   if (backgroundPreviewBloomsEl) {
     backgroundPreviewBloomsEl.textContent = `You have ${formatLargeNumber(stats.totalBlooms)} Blooms`;
+  }
+  if (backgroundPreviewProgressFillEl) {
+    backgroundPreviewProgressFillEl.style.width = `${Math.round(progress.progress * 100)}%`;
+  }
+  if (backgroundPreviewRemainingEl) {
+    backgroundPreviewRemainingEl.textContent = unlocked
+      ? "Unlocked"
+      : `${formatLargeNumber(remainingBlooms)} Blooms left`;
   }
   if (backgroundPreviewPurchaseBtn) {
     const canPurchase = backdrop !== "classic" && Boolean(BACKDROP_PRICE_LABELS[backdrop]) && !unlocked;
@@ -1012,12 +1042,53 @@ function formatShortBloomTarget(value) {
   return `${Math.round(value)}`;
 }
 
+function getNextBackdropUnlockCandidate(stats = getTemporaryUsageStats()) {
+  if (backdropUnlocks.lifetime) return null;
+
+  const candidates = BACKDROP_IDS
+    .filter((backdrop) => backdrop !== "classic")
+    .map((backdrop) => {
+      const progress = getBackdropUnlockProgress(backdrop, stats);
+      const unlocked = BASE_UNLOCKED_BACKDROP_IDS.includes(backdrop)
+        || backdropUnlocks.unlocked.includes(backdrop)
+        || progress.unlockedByFarming;
+      if (unlocked || progress.targetBlooms <= 0) return null;
+      return {
+        backdrop,
+        progress,
+        remainingBlooms: Math.max(0, Math.ceil(progress.targetBlooms - stats.totalBlooms)),
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.remainingBlooms - b.remainingBlooms);
+
+  return candidates[0] || null;
+}
+
 function getBackdropBadge(backdrop, unlocked) {
   if (backdropUnlocks.lifetime) return "";
   if (BASE_UNLOCKED_BACKDROP_IDS.includes(backdrop)) return "BASE";
   if (unlocked) return "";
   if (isBackdropFree(backdrop)) return formatShortBloomTarget(getBackdropUnlockProgress(backdrop).targetBlooms);
   return BACKDROP_PRICE_LABELS[backdrop] || "$0.99";
+}
+
+function syncPostRunUnlockPrompt() {
+  if (!postRunUnlockPromptEl || !postRunUnlockTextEl) return;
+  const sessionBlooms = Math.max(0, Math.floor(state.score));
+  const stats = getTemporaryUsageStats();
+  const candidate = getNextBackdropUnlockCandidate(stats);
+
+  if (sessionBlooms <= 0 || !candidate) {
+    postRunUnlockPromptEl.classList.add("screen-hidden");
+    if (postRunUnlockBtn) postRunUnlockBtn.dataset.backdrop = "";
+    return;
+  }
+
+  const name = BACKDROP_DISPLAY_NAMES[candidate.backdrop] || "a background";
+  postRunUnlockTextEl.textContent = `You earned ${formatLargeNumber(sessionBlooms)} Blooms. ${name} is ${formatLargeNumber(candidate.remainingBlooms)} Blooms away.`;
+  if (postRunUnlockBtn) postRunUnlockBtn.dataset.backdrop = candidate.backdrop;
+  postRunUnlockPromptEl.classList.remove("screen-hidden");
 }
 
 function buildBackdropSelectionText(backdrop, unlocked, stats = getTemporaryUsageStats()) {
@@ -1327,6 +1398,7 @@ function showHomeScreen() {
   premiumScreenEl?.classList.add("screen-hidden");
   setGameUiVisible(false);
   overlayTitleEl.textContent = "Bloomwave Garden";
+  syncPostRunUnlockPrompt();
   syncColorControls();
 }
 
@@ -1340,6 +1412,7 @@ function showLeaderboardScreen() {
   leaderboardScreenEl?.classList.remove("screen-hidden");
   premiumScreenEl?.classList.add("screen-hidden");
   setGameUiVisible(false);
+  syncPostRunUnlockPrompt();
   syncColorControls();
 }
 
@@ -4222,6 +4295,18 @@ if (shareScoreBtn) {
 if (customBgBtn) {
   customBgBtn.addEventListener("click", () => {
     showPremiumScreen();
+  });
+}
+
+if (postRunUnlockBtn) {
+  postRunUnlockBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const backdrop = postRunUnlockBtn.dataset.backdrop;
+    showPremiumScreen();
+    if (backdrop && BACKDROP_IDS.includes(backdrop) && !isBackdropUnlocked(backdrop)) {
+      showBackgroundPreview(backdrop);
+    }
   });
 }
 

@@ -163,6 +163,59 @@ button.menu-btn:focus-visible {
   background: linear-gradient(180deg, #c9edff, #82d3d9);
 }
 
+.post-run-unlock-prompt {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 68px;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 2px solid rgba(50, 120, 112, 0.68);
+  background:
+    linear-gradient(180deg, rgba(226, 255, 241, 0.86), rgba(255, 232, 186, 0.72));
+  box-shadow:
+    inset 0 -2px 0 rgba(0, 0, 0, 0.1),
+    0 2px 0 rgba(58, 38, 17, 0.18);
+  text-align: left;
+}
+
+.post-run-unlock-prompt.screen-hidden {
+  display: none;
+}
+
+.post-run-unlock-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.post-run-unlock-kicker {
+  color: #327870;
+  font-family: var(--pixel-font);
+  font-size: 0.62rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.post-run-unlock-copy p {
+  color: #2c1d10;
+  font-size: 0.82rem;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.post-run-unlock-btn {
+  min-height: 42px;
+  border: 2px solid rgba(26, 21, 12, 0.9);
+  border-radius: 0;
+  background: linear-gradient(180deg, #c5ffe0, #6fdfaa);
+  color: #2c1d10;
+  font-family: var(--pixel-font);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .menu-icon-btn {
   display: grid;
   place-items: center;
@@ -616,6 +669,32 @@ button.menu-btn:focus-visible {
   text-transform: uppercase;
 }
 
+.background-preview-progress {
+  height: 10px;
+  border: 2px solid rgba(52, 36, 18, 0.82);
+  background: rgba(94, 69, 38, 0.2);
+  overflow: hidden;
+}
+
+.background-preview-progress span {
+  display: block;
+  width: 0%;
+  height: 100%;
+  background:
+    linear-gradient(90deg, #6fdfaa, #c5ffe0);
+}
+
+.background-preview-remaining {
+  margin: 0;
+  color: rgba(59, 42, 23, 0.88);
+  font-family: var(--pixel-font);
+  font-size: 0.62rem;
+  font-weight: 900;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: uppercase;
+}
+
 .unlock-btn.is-hidden {
   display: none;
 }
@@ -716,6 +795,38 @@ button.menu-btn:focus-visible {
 .funding-note {
   margin-bottom: 8px;
   font-weight: 650;
+}
+
+.lifetime-value {
+  margin: 8px 0 6px;
+  padding: 8px 10px;
+  border: 2px solid rgba(93, 63, 33, 0.36);
+  background:
+    linear-gradient(180deg, rgba(216, 251, 255, 0.72), rgba(255, 232, 186, 0.62));
+  display: grid;
+  gap: 4px;
+  text-align: left;
+}
+
+.lifetime-value.is-active {
+  border-color: rgba(50, 120, 112, 0.7);
+  background:
+    linear-gradient(180deg, rgba(197, 255, 224, 0.72), rgba(216, 251, 255, 0.58));
+}
+
+.lifetime-value-kicker {
+  color: #327870;
+  font-family: var(--pixel-font);
+  font-size: 0.62rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.lifetime-value-text {
+  color: rgba(44, 29, 16, 0.9);
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.3;
 }
 
 .unlock-btn:disabled {
