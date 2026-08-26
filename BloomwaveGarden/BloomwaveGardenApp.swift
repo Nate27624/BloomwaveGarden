@@ -1,15 +1,18 @@
 import AVFAudio
 import GameKit
+import StoreKit
 import SwiftUI
 import UIKit
 
 @MainActor
-final class GameCenterService: NSObject, GKGameCenterControllerDelegate {
+final class GameCenterService: NSObject, @preconcurrency GKGameCenterControllerDelegate {
   static let shared = GameCenterService()
 
   private var didConfigureAuthentication = false
   private var pendingLeaderboardPresentation = false
   private var pendingScoreSubmission = 0
+  private var pendingCrateContext = 0
+  private var pendingLeaderboardLoads: [(limit: Int, completion: ([[String: Any]]) -> Void)] = []
   private let leaderboardID: String?
 
   private override init() {
@@ -25,15 +28,16 @@ final class GameCenterService: NSObject, GKGameCenterControllerDelegate {
 
     GKLocalPlayer.local.authenticateHandler = { viewController, _ in
       DispatchQueue.main.async {
-        if let viewController, let presenter = Self.topViewController() {
+        if UIApplication.shared.applicationState == .active,
+           let viewController,
+           let presenter = Self.topViewController() {
           presenter.present(viewController, animated: true)
           return
         }
 
         let isAuthenticated = GKLocalPlayer.local.isAuthenticated
-        GKAccessPoint.shared.isActive = isAuthenticated
-        GKAccessPoint.shared.location = .topLeading
-        GKAccessPoint.shared.showHighlights = true
+        GKAccessPoint.shared.isActive = false
+        GKAccessPoint.shared.showHighlights = false
 
         guard isAuthenticated else { return }
         self.flushPendingActions()
@@ -51,15 +55,32 @@ final class GameCenterService: NSObject, GKGameCenterControllerDelegate {
     presentLeaderboardNow()
   }
 
-  func submitProgressScore(_ score: Int) {
+  func submitProgressScore(_ score: Int, crates: Int) {
     authenticateLocalPlayerIfNeeded()
     guard score > 0 else { return }
     guard GKLocalPlayer.local.isAuthenticated else {
-      pendingScoreSubmission = max(pendingScoreSubmission, score)
+      if score >= pendingScoreSubmission {
+        pendingScoreSubmission = score
+        pendingCrateContext = max(0, crates)
+      }
       return
     }
 
-    submitScoreNow(score)
+    submitScoreNow(score, crates: crates)
+  }
+
+  func loadLeaderboardEntries(limit: Int, completion: @escaping ([[String: Any]]) -> Void) {
+    authenticateLocalPlayerIfNeeded()
+    guard leaderboardID != nil else {
+      completion([])
+      return
+    }
+    guard GKLocalPlayer.local.isAuthenticated else {
+      pendingLeaderboardLoads.append((max(1, limit), completion))
+      return
+    }
+
+    loadLeaderboardEntriesNow(limit: limit, completion: completion)
   }
 
   func gameCenterViewControllerDidFinish(_ gameCenterViewController: GKGameCenterViewController) {
@@ -69,22 +90,30 @@ final class GameCenterService: NSObject, GKGameCenterControllerDelegate {
   private func flushPendingActions() {
     if pendingScoreSubmission > 0 {
       let score = pendingScoreSubmission
+      let crates = pendingCrateContext
       pendingScoreSubmission = 0
-      submitScoreNow(score)
+      pendingCrateContext = 0
+      submitScoreNow(score, crates: crates)
     }
 
     if pendingLeaderboardPresentation {
       pendingLeaderboardPresentation = false
       presentLeaderboardNow()
     }
+
+    let loads = pendingLeaderboardLoads
+    pendingLeaderboardLoads.removeAll()
+    for load in loads {
+      loadLeaderboardEntriesNow(limit: load.limit, completion: load.completion)
+    }
   }
 
-  private func submitScoreNow(_ score: Int) {
+  private func submitScoreNow(_ score: Int, crates: Int) {
     guard let leaderboardID else { return }
 
     GKLeaderboard.submitScore(
       score,
-      context: 0,
+      context: max(0, crates),
       player: GKLocalPlayer.local,
       leaderboardIDs: [leaderboardID]
     ) { _ in
@@ -92,14 +121,67 @@ final class GameCenterService: NSObject, GKGameCenterControllerDelegate {
     }
   }
 
-  private func presentLeaderboardNow() {
-    guard let presenter = Self.topViewController() else { return }
-
-    let gameCenterVC = GKGameCenterViewController(state: .leaderboards)
-    gameCenterVC.gameCenterDelegate = self
-    if let leaderboardID {
-      gameCenterVC.leaderboardIdentifier = leaderboardID
+  private func loadLeaderboardEntriesNow(limit: Int, completion: @escaping ([[String: Any]]) -> Void) {
+    guard let leaderboardID else {
+      completion([])
+      return
     }
+    let localPlayerID = GKLocalPlayer.local.gamePlayerID
+
+    GKLeaderboard.loadLeaderboards(IDs: [leaderboardID]) { leaderboards, error in
+      guard error == nil, let leaderboard = leaderboards?.first else {
+        DispatchQueue.main.async { completion([]) }
+        return
+      }
+
+      let entryLimit = max(1, min(limit, 100))
+      leaderboard.loadEntries(
+        for: .global,
+        timeScope: .allTime,
+        range: NSRange(location: 1, length: entryLimit)
+      ) { localPlayerEntry, entries, _, error in
+        let payload: [[String: Any]]
+        if error == nil {
+          var seenPlayerIDs = Set<String>()
+          let orderedEntries = ([localPlayerEntry] + (entries ?? [])).compactMap { $0 }
+          payload = orderedEntries.compactMap { entry in
+            let playerID = entry.player.gamePlayerID
+            guard seenPlayerIDs.insert(playerID).inserted else { return nil }
+            return Self.payload(for: entry, localPlayerID: localPlayerID)
+          }
+        } else {
+          payload = []
+        }
+        DispatchQueue.main.async {
+          completion(payload)
+        }
+      }
+    }
+  }
+
+  nonisolated private static func payload(for entry: GKLeaderboard.Entry, localPlayerID: String) -> [String: Any] {
+    [
+      "id": entry.player.gamePlayerID,
+      "name": entry.player.displayName,
+      "rank": entry.rank,
+      "totalBlooms": entry.score,
+      "totalCrates": max(0, entry.context),
+      "isLocal": entry.player.gamePlayerID == localPlayerID,
+    ]
+  }
+
+  private func presentLeaderboardNow() {
+    guard UIApplication.shared.applicationState == .active else {
+      pendingLeaderboardPresentation = true
+      return
+    }
+    guard let presenter = Self.topViewController() else { return }
+    guard !(presenter is GKGameCenterViewController) else { return }
+
+    let gameCenterVC = leaderboardID.map {
+      GKGameCenterViewController(leaderboardID: $0, playerScope: .global, timeScope: .allTime)
+    } ?? GKGameCenterViewController(state: .leaderboards)
+    gameCenterVC.gameCenterDelegate = self
     presenter.present(gameCenterVC, animated: true)
   }
 
@@ -128,6 +210,164 @@ final class GameCenterService: NSObject, GKGameCenterControllerDelegate {
   }
 }
 
+@MainActor
+final class PurchaseService {
+  static let shared = PurchaseService()
+
+  private let knownProductIDs: Set<String> = [
+    "com.nate27624.bloomwavegarden.backgrounds.lifetime",
+    "com.nate27624.bloomwavegarden.background.citylight",
+    "com.nate27624.bloomwavegarden.background.moonlitfalls",
+    "com.nate27624.bloomwavegarden.background.emberfield",
+    "com.nate27624.bloomwavegarden.background.colorfield",
+    "com.nate27624.bloomwavegarden.background.americanflag",
+    "com.nate27624.bloomwavegarden.background.rosedunes",
+    "com.nate27624.bloomwavegarden.background.frostmeadow",
+    "com.nate27624.bloomwavegarden.background.azurereef",
+  ]
+
+  private var productsByID: [String: Product] = [:]
+  private var transactionUpdatesTask: Task<Void, Never>?
+
+  private init() {}
+
+  func startObservingTransactions() {
+    guard transactionUpdatesTask == nil else { return }
+    transactionUpdatesTask = Task { [weak self] in
+      for await result in StoreKit.Transaction.updates {
+        guard let self, let transaction = self.verifiedTransaction(from: result) else { continue }
+        await transaction.finish()
+      }
+    }
+  }
+
+  func loadProducts(productIDs requestedIDs: [String], completion: @escaping ([String: Any]) -> Void) {
+    Task {
+      let productIDs = requestedIDs.isEmpty ? knownProductIDs : Set(requestedIDs).intersection(knownProductIDs)
+      guard !productIDs.isEmpty else {
+        completion(productsPayload(status: "empty", products: [], ownedProductIDs: await currentOwnedProductIDs()))
+        return
+      }
+
+      do {
+        let products = try await Product.products(for: Array(productIDs))
+        for product in products {
+          productsByID[product.id] = product
+        }
+        completion(productsPayload(status: "success", products: products, ownedProductIDs: await currentOwnedProductIDs()))
+      } catch {
+        completion([
+          "status": "unavailable",
+          "products": [],
+          "ownedProductIDs": await currentOwnedProductIDs(),
+        ])
+      }
+    }
+  }
+
+  func purchase(productID: String, completion: @escaping ([String: Any]) -> Void) {
+    Task {
+      guard knownProductIDs.contains(productID) else {
+        completion(["status": "unavailable", "productID": productID, "ownedProductIDs": await currentOwnedProductIDs()])
+        return
+      }
+
+      do {
+        let product = try await product(for: productID)
+        guard let product else {
+          completion(["status": "unavailable", "productID": productID, "ownedProductIDs": await currentOwnedProductIDs()])
+          return
+        }
+
+        let result = try await product.purchase()
+        switch result {
+        case .success(let verification):
+          guard let transaction = verifiedTransaction(from: verification) else {
+            completion(["status": "unverified", "productID": productID, "ownedProductIDs": await currentOwnedProductIDs()])
+            return
+          }
+          await transaction.finish()
+          let owned = Set(await currentOwnedProductIDs()).union([productID])
+          completion(["status": "success", "productID": productID, "ownedProductIDs": Array(owned)])
+        case .userCancelled:
+          completion(["status": "cancelled", "productID": productID, "ownedProductIDs": await currentOwnedProductIDs()])
+        case .pending:
+          completion(["status": "pending", "productID": productID, "ownedProductIDs": await currentOwnedProductIDs()])
+        @unknown default:
+          completion(["status": "unknown", "productID": productID, "ownedProductIDs": await currentOwnedProductIDs()])
+        }
+      } catch {
+        completion(["status": "failed", "productID": productID, "ownedProductIDs": await currentOwnedProductIDs()])
+      }
+    }
+  }
+
+  func restorePurchases(completion: @escaping ([String: Any]) -> Void) {
+    Task {
+      do {
+        try await AppStore.sync()
+      } catch {
+        completion(["status": "failed", "ownedProductIDs": await currentOwnedProductIDs()])
+        return
+      }
+
+      let owned = await currentOwnedProductIDs()
+      completion(["status": owned.isEmpty ? "empty" : "restored", "ownedProductIDs": owned])
+    }
+  }
+
+  func loadEntitlements(completion: @escaping ([String: Any]) -> Void) {
+    Task {
+      let owned = await currentOwnedProductIDs()
+      completion(["status": owned.isEmpty ? "empty" : "restored", "ownedProductIDs": owned])
+    }
+  }
+
+  private func product(for productID: String) async throws -> Product? {
+    if let product = productsByID[productID] { return product }
+    let products = try await Product.products(for: [productID])
+    guard let product = products.first else { return nil }
+    productsByID[product.id] = product
+    return product
+  }
+
+  private func currentOwnedProductIDs() async -> [String] {
+    var owned: [String] = []
+    for await result in StoreKit.Transaction.currentEntitlements {
+      guard let transaction = verifiedTransaction(from: result) else { continue }
+      guard transaction.revocationDate == nil else { continue }
+      if let expirationDate = transaction.expirationDate, expirationDate < Date() { continue }
+      if knownProductIDs.contains(transaction.productID) {
+        owned.append(transaction.productID)
+      }
+    }
+    return Array(Set(owned)).sorted()
+  }
+
+  private func productsPayload(status: String, products: [Product], ownedProductIDs: [String]) -> [String: Any] {
+    [
+      "status": status,
+      "products": products.map { product in
+        [
+          "id": product.id,
+          "displayName": product.displayName,
+          "displayPrice": product.displayPrice,
+        ]
+      },
+      "ownedProductIDs": ownedProductIDs,
+    ]
+  }
+
+  private func verifiedTransaction(from result: VerificationResult<StoreKit.Transaction>) -> StoreKit.Transaction? {
+    switch result {
+    case .verified(let transaction):
+      return transaction
+    case .unverified:
+      return nil
+    }
+  }
+}
+
 private final class AppDelegate: NSObject, UIApplicationDelegate {
   func application(
     _ application: UIApplication,
@@ -142,6 +382,7 @@ private final class AppDelegate: NSObject, UIApplicationDelegate {
     }
     Task { @MainActor in
       GameCenterService.shared.authenticateLocalPlayerIfNeeded()
+      PurchaseService.shared.startObservingTransactions()
     }
     return true
   }

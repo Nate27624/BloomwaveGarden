@@ -22,6 +22,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nate27624.bloomwavegarden
         PRODUCT_NAME: BloomwaveGarden
+        CODE_SIGN_ENTITLEMENTS: BloomwaveGarden/BloomwaveGarden.entitlements
         INFOPLIST_FILE: BloomwaveGarden/Info.plist
         SWIFT_VERSION: 5.0
         TARGETED_DEVICE_FAMILY: "1,2"

@@ -22,8 +22,6 @@
         <div id="overlay" class="overlay">
           <section id="home-screen" class="menu-panel">
             <h2 id="overlay-title">Bloomwave Garden</h2>
-            <p id="overlay-text">Pixel farm vibes. Tap blooms, chain zaps, harvest crates.</p>
-            <p class="hint">Simple, chill, and trippy.</p>
             <div class="menu-actions">
               <button id="play-btn" type="button" class="menu-btn menu-icon-btn play-btn" aria-label="Play">
                 <svg class="menu-icon" viewBox="0 0 16 16" aria-hidden="true">
@@ -40,15 +38,136 @@
                   <rect x="4" y="13" width="8" height="1" fill="#2d1b0d"></rect>
                 </svg>
               </button>
+              <button id="custom-bg-btn" type="button" class="menu-btn menu-icon-btn premium-btn" aria-label="Custom backgrounds">
+                <svg class="menu-icon" viewBox="0 0 16 16" aria-hidden="true">
+                  <rect x="2" y="3" width="12" height="10" fill="#213a45"></rect>
+                  <rect x="3" y="4" width="10" height="8" fill="#76d9cf"></rect>
+                  <rect x="3" y="8" width="10" height="4" fill="#f4bd68"></rect>
+                  <rect x="5" y="6" width="2" height="2" fill="#fff1ce"></rect>
+                  <rect x="9" y="9" width="3" height="3" fill="#3d8d70"></rect>
+                </svg>
+              </button>
             </div>
+            <aside id="post-run-unlock-prompt" class="post-run-unlock-prompt screen-hidden" aria-label="Background unlock progress">
+              <span class="post-run-unlock-icon" aria-hidden="true">
+                <span></span>
+              </span>
+              <div class="post-run-unlock-copy">
+                <span class="post-run-unlock-kicker">Map progress</span>
+                <p id="post-run-unlock-text">You earned 0 Blooms.</p>
+                <div class="post-run-unlock-meter" aria-hidden="true">
+                  <span id="post-run-unlock-progress-fill"></span>
+                </div>
+                <small id="post-run-unlock-price" class="post-run-unlock-price">Try now free for 24h</small>
+              </div>
+              <button id="post-run-unlock-btn" type="button" class="post-run-unlock-btn">
+                <span>View</span>
+              </button>
+            </aside>
           </section>
 
           <section id="leaderboard-screen" class="menu-panel screen-hidden">
             <h2>Leaderboard</h2>
-            <p class="hint">Ranked by Blooms. Crates break ties.</p>
-            <ol id="leaderboard-list" class="leaderboard-list"></ol>
+            <div class="leaderboard-tools">
+              <label class="leaderboard-search-label" for="leaderboard-search">Search usernames</label>
+              <input id="leaderboard-search" class="leaderboard-search" type="search" autocomplete="off" placeholder="Search usernames" />
+              <button id="share-score-btn" class="share-score-btn" type="button" aria-label="Share your score">
+                <svg class="share-score-icon" viewBox="0 0 16 16" aria-hidden="true">
+                  <rect x="7" y="2" width="2" height="8" fill="#2d1b0d"></rect>
+                  <rect x="4" y="5" width="2" height="2" fill="#2d1b0d"></rect>
+                  <rect x="5" y="4" width="2" height="2" fill="#2d1b0d"></rect>
+                  <rect x="9" y="4" width="2" height="2" fill="#2d1b0d"></rect>
+                  <rect x="10" y="5" width="2" height="2" fill="#2d1b0d"></rect>
+                  <rect x="3" y="9" width="10" height="5" fill="#2d1b0d"></rect>
+                  <rect x="5" y="10" width="6" height="2" fill="#f6c474"></rect>
+                </svg>
+              </button>
+            </div>
+            <div class="leaderboard-layout">
+              <ol id="leaderboard-list" class="leaderboard-list"></ol>
+              <aside class="score-visualizer" aria-label="Score crate visualizer">
+                <div class="score-visualizer-top">
+                  <span id="scoreboard-rank" class="score-rank">#--</span>
+                  <span id="scoreboard-name" class="score-name">You</span>
+                </div>
+                <div class="score-figures">
+                  <span><strong id="scoreboard-blooms">0</strong> Blooms</span>
+                  <span><strong id="scoreboard-crates">0</strong> Crates</span>
+                </div>
+                <div id="scoreboard-crate-grid" class="crate-grid" aria-hidden="true"></div>
+              </aside>
+            </div>
             <div class="menu-actions single-action">
               <button id="leaderboard-back-btn" type="button" class="menu-btn">Back</button>
+            </div>
+          </section>
+
+          <section id="premium-screen" class="menu-panel screen-hidden">
+            <h2>Custom Backgrounds</h2>
+            <div class="premium-background-grid" aria-label="Premium custom backgrounds">
+              <button type="button" class="background-tile classic" data-backdrop="classic" aria-label="Classic Farm">
+                <span>Classic Farm</span>
+              </button>
+              <button type="button" class="background-tile twilight" data-backdrop="twilight" aria-label="Citylight Grove">
+                <span>Citylight Grove</span>
+              </button>
+              <button type="button" class="background-tile falls" data-backdrop="aurora" aria-label="Moonlit Falls">
+                <span>Moonlit Falls</span>
+              </button>
+              <button type="button" class="background-tile ember" data-backdrop="ember" aria-label="Ember Field">
+                <span>Ember Field</span>
+              </button>
+              <button type="button" class="background-tile color" data-backdrop="color" aria-label="Color Field">
+                <span>Color Field</span>
+              </button>
+              <button type="button" class="background-tile flag" data-backdrop="flag" aria-label="American Flag">
+                <span>American Flag</span>
+              </button>
+              <button type="button" class="background-tile rose" data-backdrop="rose" aria-label="Rose Dunes">
+                <span>Rose Dunes</span>
+              </button>
+              <button type="button" class="background-tile frost" data-backdrop="frost" aria-label="Frost Meadow">
+                <span>Frost Meadow</span>
+              </button>
+              <button type="button" class="background-tile azure" data-backdrop="azure" aria-label="Azure Reef">
+                <span>Azure Reef</span>
+              </button>
+            </div>
+            <div class="purchase-actions">
+              <button id="unlock-backgrounds-btn" type="button" class="unlock-btn">Unlock Selected $0.99</button>
+              <button id="unlock-lifetime-btn" type="button" class="unlock-btn lifetime-btn">
+                <span class="lifetime-btn-main">Lifetime Pass <span id="lifetime-price">$4.99</span></span>
+                <span class="lifetime-btn-note">(best value)</span>
+              </button>
+            </div>
+            <p id="funding-note" class="funding-note">Thank you for considering purchasing a background. These funds help us build more fun, simple games.</p>
+            <div class="purchase-utility-actions">
+              <button id="restore-purchases-btn" type="button" class="restore-btn">Restore Purchases</button>
+            </div>
+            <div class="menu-actions single-action">
+              <button id="premium-back-btn" type="button" class="menu-btn">Back</button>
+            </div>
+          </section>
+
+          <section id="background-preview-modal" class="background-preview-modal screen-hidden" aria-label="Background preview">
+            <div class="background-preview-dialog">
+              <div class="background-preview-header">
+                <h2 id="background-preview-title">Background Preview</h2>
+                <button id="background-preview-close-btn" class="background-preview-close" type="button" aria-label="Close background preview">x</button>
+              </div>
+              <canvas id="background-preview-canvas" class="background-preview-canvas" width="320" height="180" aria-label="Selected background canvas preview"></canvas>
+              <div class="background-preview-actions">
+                <div class="background-preview-unlock">
+                  <button id="background-preview-use-btn" type="button" class="unlock-btn">Use Background</button>
+                  <p id="background-preview-blooms" class="background-preview-blooms">You have 0 Blooms</p>
+                  <div class="background-preview-progress" aria-hidden="true">
+                    <span id="background-preview-progress-fill"></span>
+                  </div>
+                  <p id="background-preview-remaining" class="background-preview-remaining">0 Blooms left</p>
+                </div>
+                <button id="background-preview-ad-btn" type="button" class="unlock-btn ad-equip-btn">Watch Ad: Equip 24h</button>
+                <button id="background-preview-purchase-btn" type="button" class="unlock-btn">Purchase for $.50</button>
+              </div>
             </div>
           </section>
         </div>
@@ -58,14 +177,21 @@
           <div class="chip">Harvest: <span id="calm">0/12</span></div>
           <div class="chip">Crates: <span id="crates">0</span></div>
         </div>
-
-        <div class="status is-hidden" id="status">Goal loading...</div>
         <button id="menu-corner-btn" class="menu-corner is-hidden" type="button" aria-label="Open menu">
           <svg class="menu-corner-icon" viewBox="0 0 16 16" aria-hidden="true">
             <polygon points="2,8 8,3 14,8 14,9 13,9 13,14 9,14 9,10 7,10 7,14 3,14 3,9 2,9" fill="#4f2f14"></polygon>
             <rect x="6" y="4" width="4" height="1" fill="#7f4c1f"></rect>
           </svg>
         </button>
+        <button id="color-backdrop-btn" class="color-backdrop-btn is-hidden" type="button" aria-label="Choose backdrop color">
+          <svg class="color-backdrop-icon" viewBox="0 0 16 16" aria-hidden="true">
+            <rect x="2" y="4" width="12" height="9" fill="#2c1d10"></rect>
+            <rect x="3" y="5" width="10" height="7" fill="var(--selected-backdrop-color, #7c68d8)"></rect>
+            <rect x="5" y="2" width="6" height="2" fill="#2c1d10"></rect>
+            <rect x="6" y="3" width="4" height="2" fill="#f6c474"></rect>
+          </svg>
+        </button>
+        <input id="color-backdrop-input" class="color-backdrop-input" type="color" value="#7c68d8" aria-label="Backdrop color" />
       </section>
 
       <footer class="controls">

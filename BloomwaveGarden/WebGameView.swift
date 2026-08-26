@@ -2,11 +2,13 @@ import SwiftUI
 import UIKit
 import WebKit
 import QuartzCore
+import GameKit
 
 struct WebGameView: UIViewRepresentable {
   final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
     private var lastBridgeMessageAt: CFTimeInterval = CACurrentMediaTime()
     private var lastFallbackToneAt: CFTimeInterval = -Double.greatestFiniteMagnitude
+    weak var webView: WKWebView?
 
     @objc func handleUserTap() {
       let nativeAudio = LofiAudioEngine.shared
@@ -41,8 +43,49 @@ struct WebGameView: UIViewRepresentable {
         handleNativeAudio(event: event, payload: payload)
       case "nativeGameCenter":
         handleNativeGameCenter(event: event, payload: payload)
+      case "nativeShare":
+        handleNativeShare(event: event, payload: payload)
+      case "nativePurchase":
+        handleNativePurchase(event: event, payload: payload)
       default:
         break
+      }
+    }
+
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+      guard let url = navigationAction.request.url,
+            let scheme = url.scheme?.lowercased() else {
+        decisionHandler(.allow)
+        return
+      }
+
+      if url.isFileURL || scheme == "about" || scheme == "data" {
+        decisionHandler(.allow)
+        return
+      }
+
+      if ["sms", "mailto", "tel", "http", "https"].contains(scheme) {
+        UIApplication.shared.open(url)
+        decisionHandler(.cancel)
+        return
+      }
+
+      decisionHandler(.cancel)
+    }
+
+    private func handleNativeShare(event: String, payload: [String: Any]) {
+      guard event == "sms" else { return }
+      let text = stringValue(payload["text"])
+      guard !text.isEmpty else { return }
+
+      let allowedCharacters = CharacterSet.urlQueryAllowed.subtracting(CharacterSet(charactersIn: "&+=?"))
+      guard let encodedText = text.addingPercentEncoding(withAllowedCharacters: allowedCharacters),
+            let url = URL(string: "sms:&body=\(encodedText)") else {
+        return
+      }
+
+      DispatchQueue.main.async {
+        UIApplication.shared.open(url)
       }
     }
 
@@ -53,11 +96,74 @@ struct WebGameView: UIViewRepresentable {
           GameCenterService.shared.showLeaderboard()
         case "submitScore":
           let score = self.intValue(payload["score"])
-          GameCenterService.shared.submitProgressScore(score)
+          let crates = self.intValue(payload["crates"])
+          GameCenterService.shared.submitProgressScore(score, crates: crates)
+        case "loadLeaderboard":
+          let limit = self.intValue(payload["limit"])
+          GameCenterService.shared.loadLeaderboardEntries(limit: limit > 0 ? limit : 10) { entries in
+            self.sendLeaderboardEntriesToWeb(entries)
+          }
         default:
           break
         }
       }
+    }
+
+    private func sendLeaderboardEntriesToWeb(_ entries: [[String: Any]]) {
+      let payload: [String: Any] = [
+        "entries": entries,
+        "localPlayerID": GKLocalPlayer.local.gamePlayerID,
+        "localPlayerName": GKLocalPlayer.local.displayName,
+        "available": !entries.isEmpty,
+      ]
+
+      guard JSONSerialization.isValidJSONObject(payload),
+            let data = try? JSONSerialization.data(withJSONObject: payload),
+            let json = String(data: data, encoding: .utf8) else {
+        return
+      }
+
+      let script = "window.bloomwaveNativeGameCenter && window.bloomwaveNativeGameCenter.receiveLeaderboard(\(json));"
+      webView?.evaluateJavaScript(script)
+    }
+
+    private func handleNativePurchase(event: String, payload: [String: Any]) {
+      DispatchQueue.main.async {
+        switch event {
+        case "loadProducts":
+          let productIDs = self.stringArrayValue(payload["productIDs"])
+          PurchaseService.shared.loadProducts(productIDs: productIDs) { result in
+            self.sendPurchasePayload(method: "receiveProducts", payload: result)
+          }
+        case "loadEntitlements":
+          PurchaseService.shared.loadEntitlements { result in
+            self.sendPurchasePayload(method: "receiveRestore", payload: result)
+          }
+        case "purchase":
+          let productID = self.stringValue(payload["productID"])
+          PurchaseService.shared.purchase(productID: productID) { result in
+            self.sendPurchasePayload(method: "receivePurchase", payload: result)
+          }
+        case "restore":
+          PurchaseService.shared.restorePurchases { result in
+            self.sendPurchasePayload(method: "receiveRestore", payload: result)
+          }
+        default:
+          break
+        }
+      }
+    }
+
+    private func sendPurchasePayload(method: String, payload: [String: Any]) {
+      guard ["receiveProducts", "receivePurchase", "receiveRestore"].contains(method),
+            JSONSerialization.isValidJSONObject(payload),
+            let data = try? JSONSerialization.data(withJSONObject: payload),
+            let json = String(data: data, encoding: .utf8) else {
+        return
+      }
+
+      let script = "window.bloomwaveNativePurchases && window.bloomwaveNativePurchases.\(method)(\(json));"
+      webView?.evaluateJavaScript(script)
     }
 
     private func handleNativeAudio(event: String, payload: [String: Any]) {
@@ -174,6 +280,12 @@ struct WebGameView: UIViewRepresentable {
       if let stringValue = value as? String { return stringValue }
       return ""
     }
+
+    private func stringArrayValue(_ value: Any?) -> [String] {
+      if let values = value as? [String] { return values }
+      guard let values = value as? [Any] else { return [] }
+      return values.compactMap { $0 as? String }
+    }
   }
 
   private let webAudioUnlockScript = """
@@ -224,9 +336,12 @@ struct WebGameView: UIViewRepresentable {
     userContentController.addUserScript(interactionScript)
     userContentController.add(context.coordinator, name: "nativeAudio")
     userContentController.add(context.coordinator, name: "nativeGameCenter")
+    userContentController.add(context.coordinator, name: "nativeShare")
+    userContentController.add(context.coordinator, name: "nativePurchase")
     config.userContentController = userContentController
 
     let webView = WKWebView(frame: .zero, configuration: config)
+    context.coordinator.webView = webView
     webView.navigationDelegate = context.coordinator
     webView.isOpaque = false
     webView.backgroundColor = .black
@@ -252,6 +367,16 @@ struct WebGameView: UIViewRepresentable {
   }
 
   func updateUIView(_ uiView: WKWebView, context: Context) {}
+
+  static func dismantleUIView(_ uiView: WKWebView, coordinator: Coordinator) {
+    uiView.stopLoading()
+    uiView.navigationDelegate = nil
+    uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeAudio")
+    uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeGameCenter")
+    uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeShare")
+    uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativePurchase")
+    coordinator.webView = nil
+  }
 
   private func loadGame(into webView: WKWebView) {
     if let bundleFolder = Bundle.main.url(forResource: "WebBundle", withExtension: nil) {

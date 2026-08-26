@@ -184,6 +184,16 @@ final class GardenScene: SKScene {
 
   override init(size: CGSize) {
     super.init(size: CGSize(width: worldW, height: worldH))
+    configureScene()
+  }
+
+  required init?(coder aDecoder: NSCoder) {
+    super.init(coder: aDecoder)
+    size = CGSize(width: worldW, height: worldH)
+    configureScene()
+  }
+
+  private func configureScene() {
     scaleMode = .aspectFill
     anchorPoint = CGPoint(x: 0.5, y: 0.5)
 
@@ -201,10 +211,6 @@ final class GardenScene: SKScene {
     buildBackground()
     buildBedVisuals()
     softReset(showOverlay: true)
-  }
-
-  required init?(coder aDecoder: NSCoder) {
-    fatalError("init(coder:) has not been implemented")
   }
 
   func attachHUD(_ hud: GameHUDModel) {
@@ -894,7 +900,8 @@ final class GardenScene: SKScene {
     outer.alpha = 0.45 * alpha
     outer.zPosition = 41
     let growOuter = SKAction.scale(to: maxScale + 0.8, duration: life)
-    outer.run(.sequence([.group([growOuter, fade.copy() as! SKAction]), .removeFromParent()]))
+    let fadeOuter = SKAction.fadeOut(withDuration: life)
+    outer.run(.sequence([.group([growOuter, fadeOuter]), .removeFromParent()]))
     effectLayer.addChild(outer)
   }
 
@@ -965,8 +972,9 @@ final class GardenScene: SKScene {
     glow.zPosition = 45
 
     let fade = SKAction.fadeOut(withDuration: 0.16)
+    let glowFade = SKAction.fadeOut(withDuration: 0.16)
     bolt.run(.sequence([fade, .removeFromParent()]))
-    glow.run(.sequence([fade.copy() as! SKAction, .removeFromParent()]))
+    glow.run(.sequence([glowFade, .removeFromParent()]))
 
     effectLayer.addChild(bolt)
     effectLayer.addChild(glow)
