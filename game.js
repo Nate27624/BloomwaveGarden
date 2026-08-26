@@ -7,11 +7,13 @@ const overlayTitleEl = document.getElementById("overlay-title");
 const homeScreenEl = document.getElementById("home-screen");
 const leaderboardScreenEl = document.getElementById("leaderboard-screen");
 const premiumScreenEl = document.getElementById("premium-screen");
+const settingsScreenEl = document.getElementById("settings-screen");
 const playBtn = document.getElementById("play-btn");
 const leaderboardBtn = document.getElementById("leaderboard-btn");
 const customBgBtn = document.getElementById("custom-bg-btn");
 const leaderboardBackBtn = document.getElementById("leaderboard-back-btn");
 const premiumBackBtn = document.getElementById("premium-back-btn");
+const settingsBackBtn = document.getElementById("settings-back-btn");
 const unlockBackgroundsBtn = document.getElementById("unlock-backgrounds-btn");
 const unlockLifetimeBtn = document.getElementById("unlock-lifetime-btn");
 const lifetimePriceEl = document.getElementById("lifetime-price");
@@ -44,6 +46,10 @@ const scoreboardBloomsEl = document.getElementById("scoreboard-blooms");
 const scoreboardCratesEl = document.getElementById("scoreboard-crates");
 const scoreboardCrateGridEl = document.getElementById("scoreboard-crate-grid");
 const menuCornerBtn = document.getElementById("menu-corner-btn");
+const settingsCornerBtn = document.getElementById("settings-corner-btn");
+const tapVolumeInput = document.getElementById("tap-volume-input");
+const tapVolumeValueEl = document.getElementById("tap-volume-value");
+const gameCenterVisibilityToggle = document.getElementById("game-center-visibility-toggle");
 const colorBackdropBtn = document.getElementById("color-backdrop-btn");
 const colorBackdropInput = document.getElementById("color-backdrop-input");
 const stageWrapEl = document.querySelector(".stage-wrap");
@@ -96,7 +102,12 @@ const TEMP_BACKDROP_ACCESS_STORAGE_KEY = "bloomwave_backdrop_temp_access_v1";
 const TEMP_USAGE_LOG_STORAGE_KEY = "bloomwave_usage_log_tmp_v1";
 const FIRST_START_STORAGE_KEY = "bloomwave_first_start_seen_v1";
 const DAILY_DEAL_STORAGE_KEY = "bloomwave_daily_background_deal_v1";
+const GAME_SETTINGS_STORAGE_KEY = "bloomwave_game_settings_v1";
 const DEFAULT_BACKDROP_COLOR = "#7c68d8";
+const DEFAULT_GAME_SETTINGS = {
+  tapEffectVolume: 1,
+  showOnGameCenter: true,
+};
 const BACKDROP_IDS = ["classic", "twilight", "aurora", "ember", "color", "flag", "rose", "frost", "azure"];
 const BASE_UNLOCKED_BACKDROP_IDS = ["classic"];
 const FREE_BACKDROP_IDS = ["classic", "twilight", "aurora"];
@@ -146,6 +157,17 @@ const BACKDROP_DISPLAY_NAMES = {
   rose: "Rose Dunes",
   frost: "Frost Meadow",
   azure: "Azure Reef",
+};
+const BACKDROP_DESCRIPTIONS = {
+  classic: "Sunny rows, soft grass, and the original farm view.",
+  twilight: "Neon skyline, glowing windows, and a deep violet grove.",
+  aurora: "Moonlit waterfalls, fireflies, and cool forest mist.",
+  ember: "Grazing deer, warm grass, and a calm ember meadow.",
+  color: "A clean field in your chosen color.",
+  flag: "Flag of the United States.",
+  rose: "Pink dunes, rose-tinted grass, and a soft desert glow.",
+  frost: "Snowy fields, pale trees, and a quiet winter horizon.",
+  azure: "Blue reef water and coral shapes.",
 };
 const BACKDROP_PREVIEW_CLASSES = {
   classic: "classic",
@@ -556,8 +578,12 @@ function grantTemporaryBackdropAccess(backdrop, hours = REWARDED_BACKDROP_ACCESS
     [backdrop]: Date.now() + hours * 60 * 60 * 1000,
   };
   writeTemporaryBackdropAccess(temporaryBackdropAccess);
-  selectBackdrop(backdrop);
-  showBackgroundPreview(backdrop);
+  selectedLockedBackdrop = null;
+  state.backdrop = backdrop;
+  writeBackdropPreference(backdrop);
+  hideBackgroundPreview();
+  startSession();
+  syncBackdropTiles();
 }
 
 function writeBackdropPreference(backdrop) {
@@ -642,7 +668,7 @@ function syncBackdropTiles() {
     const unlocked = isBackdropUnlocked(backdrop);
     const tempAccess = hasTemporaryBackdropAccess(backdrop);
     const usable = unlocked || tempAccess;
-    const dailyDeal = isDailyDealBackdrop(backdrop) && !unlocked;
+    const dailyDeal = isDailyDealBackdrop(backdrop) && !unlocked && !tempAccess;
     tile.classList.toggle("is-selected", selected);
     tile.classList.toggle("is-free", free);
     tile.classList.toggle("is-locked", !usable);
@@ -650,9 +676,9 @@ function syncBackdropTiles() {
     tile.classList.toggle("is-daily-deal", dailyDeal);
     tile.setAttribute("aria-pressed", selected ? "true" : "false");
     tile.setAttribute("aria-label", `${BACKDROP_DISPLAY_NAMES[backdrop] || "Background"} ${usable ? "available" : "locked"}`);
-    tile.dataset.price = getBackdropBadge(backdrop, unlocked, tempAccess);
-    tile.dataset.deal = dailyDeal ? "Deal" : "";
-    tile.querySelector("span")?.setAttribute("data-deal", dailyDeal ? "Deal" : "");
+    tile.dataset.price = dailyDeal ? `Deal ${getBackdropPriceLabel(backdrop)}` : getBackdropBadge(backdrop, unlocked, tempAccess);
+    tile.dataset.deal = "";
+    tile.querySelector("span")?.setAttribute("data-deal", "");
   }
 
   if (unlockBackgroundsBtn) {
@@ -760,9 +786,7 @@ function showBackgroundPreview(backdrop) {
     backgroundPreviewUseBtn.dataset.backdrop = backdrop;
   }
   if (backgroundPreviewBloomsEl) {
-    backgroundPreviewBloomsEl.textContent = hasBloomUnlock
-      ? `You have ${formatLargeNumber(stats.totalBlooms)} Blooms`
-      : `Purchase forever, or watch an ad to equip for ${REWARDED_BACKDROP_ACCESS_HOURS}h.`;
+    backgroundPreviewBloomsEl.textContent = BACKDROP_DESCRIPTIONS[backdrop] || "";
   }
   if (backgroundPreviewProgressFillEl) {
     backgroundPreviewProgressFillEl.style.width = formatUnlockProgressWidth(progress.progress);
@@ -778,13 +802,14 @@ function showBackgroundPreview(backdrop) {
         ? `Equipped for ${formatTemporaryAccessRemaining(tempExpiresAt)}`
         : hasBloomUnlock
           ? `${formatLargeNumber(remainingBlooms)} Blooms left`
-          : `Unlock forever ${price}`;
+          : "";
+    backgroundPreviewRemainingEl.classList.toggle("is-hidden", !backgroundPreviewRemainingEl.textContent);
   }
   if (backgroundPreviewAdBtn) {
     const canWatchAd = backdrop !== "classic" && !unlocked && !tempAccess;
     backgroundPreviewAdBtn.textContent = tempAccess && !unlocked
       ? `Equipped ${formatTemporaryAccessRemaining(getTemporaryBackdropExpiresAt(backdrop))}`
-      : `Watch Ad: Equip ${REWARDED_BACKDROP_ACCESS_HOURS}h`;
+      : `Watch Ad: 24h Access`;
     backgroundPreviewAdBtn.disabled = !canWatchAd;
     backgroundPreviewAdBtn.classList.toggle("is-hidden", backdrop === "classic" || unlocked);
     backgroundPreviewAdBtn.dataset.backdrop = canWatchAd ? backdrop : "";
@@ -1024,6 +1049,71 @@ function writePlayerTotals(totals) {
   }
 }
 
+function normalizeGameSettings(settings = {}) {
+  const tapEffectVolume = Number(settings.tapEffectVolume);
+  return {
+    tapEffectVolume: Number.isFinite(tapEffectVolume) ? clamp(tapEffectVolume, 0, 1) : DEFAULT_GAME_SETTINGS.tapEffectVolume,
+    showOnGameCenter: settings.showOnGameCenter !== false,
+  };
+}
+
+function readGameSettings() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(GAME_SETTINGS_STORAGE_KEY) || "{}");
+    return normalizeGameSettings({
+      ...DEFAULT_GAME_SETTINGS,
+      ...parsed,
+    });
+  } catch {
+    return { ...DEFAULT_GAME_SETTINGS };
+  }
+}
+
+function writeGameSettings(settings) {
+  try {
+    localStorage.setItem(GAME_SETTINGS_STORAGE_KEY, JSON.stringify(normalizeGameSettings(settings)));
+  } catch {
+    // Ignore storage write failures (private mode / quota / blocked storage).
+  }
+}
+
+function syncSettingsControls() {
+  const volumePercent = Math.round(appSettings.tapEffectVolume * 100);
+  if (tapVolumeInput) tapVolumeInput.value = String(volumePercent);
+  if (tapVolumeValueEl) tapVolumeValueEl.textContent = `${volumePercent}%`;
+  if (gameCenterVisibilityToggle) {
+    gameCenterVisibilityToggle.checked = appSettings.showOnGameCenter;
+  }
+}
+
+function applyAudioSettings() {
+  if (typeof lofi !== "undefined" && lofi?.setEffectVolume) {
+    lofi.setEffectVolume(appSettings.tapEffectVolume);
+  }
+  postNativeAudio("settings", {
+    effectVolume: appSettings.tapEffectVolume,
+  });
+}
+
+function updateGameSettings(nextSettings = {}) {
+  appSettings = normalizeGameSettings({
+    ...appSettings,
+    ...nextSettings,
+  });
+  writeGameSettings(appSettings);
+  syncSettingsControls();
+  applyAudioSettings();
+  renderLeaderboard();
+}
+
+function shouldShowOnGameCenter() {
+  return appSettings.showOnGameCenter !== false;
+}
+
+function shouldDisplayLocalLeaderboardEntry() {
+  return shouldShowOnGameCenter();
+}
+
 function getUncommittedSessionProgress() {
   return {
     blooms: Math.max(0, Math.floor(state.score) - Math.max(0, Math.floor(state.committedScore) || 0)),
@@ -1063,6 +1153,7 @@ function syncPlayerTotalsFromLocalLeaderboard(entries = leaderboardEntries) {
 
 function maybeSubmitStoredTotalsToNative(nativeBlooms = 0) {
   if (!hasNativeGameCenterBridge()) return;
+  if (!shouldShowOnGameCenter()) return;
   if (playerTotals.blooms <= 0 || playerTotals.blooms <= nativeBlooms) return;
   postNativeGameCenter("submitScore", {
     score: playerTotals.blooms,
@@ -1071,6 +1162,7 @@ function maybeSubmitStoredTotalsToNative(nativeBlooms = 0) {
 }
 
 const localPlayerProfile = readPlayerProfile();
+let appSettings = readGameSettings();
 let leaderboardEntries = readLeaderboard(localPlayerProfile);
 let selectedScoreboardEntryId = localPlayerProfile.id;
 let leaderboardSearchQuery = "";
@@ -1305,9 +1397,9 @@ function getNextBackdropUnlockCandidate(stats = getTemporaryUsageStats()) {
 
 function getBackdropBadge(backdrop, unlocked, tempAccess = false) {
   if (backdropUnlocks.lifetime) return "";
-  if (BASE_UNLOCKED_BACKDROP_IDS.includes(backdrop)) return "BASE";
+  if (BASE_UNLOCKED_BACKDROP_IDS.includes(backdrop)) return "";
   if (unlocked) return "";
-  if (tempAccess) return "24H";
+  if (tempAccess) return "";
   if (isBackdropFree(backdrop)) return formatShortBloomTarget(getBackdropUnlockProgress(backdrop).targetBlooms);
   return getBackdropPriceLabel(backdrop);
 }
@@ -1320,17 +1412,25 @@ function syncPostRunUnlockPrompt() {
 
   if (displayedBlooms <= 0 || !candidate) {
     postRunUnlockPromptEl.classList.add("screen-hidden");
-    if (postRunUnlockBtn) postRunUnlockBtn.dataset.backdrop = "";
+    if (postRunUnlockBtn) {
+      postRunUnlockBtn.dataset.backdrop = "";
+      const labelEl = postRunUnlockBtn.querySelector("span");
+      if (labelEl) labelEl.textContent = "View";
+    }
     if (postRunUnlockPriceEl) postRunUnlockPriceEl.textContent = "";
     if (postRunUnlockProgressFillEl) postRunUnlockProgressFillEl.style.width = "0%";
     return;
   }
 
   const name = BACKDROP_DISPLAY_NAMES[candidate.backdrop] || "a background";
-  const price = getBackdropPriceLabel(candidate.backdrop);
+  const tempAccess = hasTemporaryBackdropAccess(candidate.backdrop);
   postRunUnlockTextEl.textContent = `${name}: ${formatLargeNumber(displayedBlooms)} / ${formatCompactNumber(candidate.progress.targetBlooms)} Blooms`;
-  if (postRunUnlockBtn) postRunUnlockBtn.dataset.backdrop = candidate.backdrop;
-  if (postRunUnlockPriceEl) postRunUnlockPriceEl.textContent = `Try now free for ${REWARDED_BACKDROP_ACCESS_HOURS}h`;
+  if (postRunUnlockBtn) {
+    postRunUnlockBtn.dataset.backdrop = candidate.backdrop;
+    const labelEl = postRunUnlockBtn.querySelector("span");
+    if (labelEl) labelEl.textContent = tempAccess ? "Equip" : "View";
+  }
+  if (postRunUnlockPriceEl) postRunUnlockPriceEl.textContent = tempAccess ? "" : `Watch ad for ${REWARDED_BACKDROP_ACCESS_HOURS}h access`;
   if (postRunUnlockProgressFillEl) {
     postRunUnlockProgressFillEl.style.width = formatUnlockProgressWidth(candidate.progress.progress);
   }
@@ -1341,7 +1441,7 @@ function buildBackdropSelectionText(backdrop, unlocked, stats = getTemporaryUsag
   const name = BACKDROP_DISPLAY_NAMES[backdrop] || "Selected";
   const progress = getBackdropUnlockProgress(backdrop, stats);
   if (progress.targetBlooms <= 0 && !unlocked) {
-    return `${name} preview. Unlock forever, or watch an ad to equip for ${REWARDED_BACKDROP_ACCESS_HOURS}h.`;
+    return BACKDROP_DESCRIPTIONS[backdrop] || `${name} preview.`;
   }
   const targetText = progress.targetHours > 0
     ? `about ${formatUnlockTime(progress.targetHours)} of farming (${formatLargeNumber(progress.targetBlooms)} Blooms at ${formatLargeNumber(BACKDROP_UNLOCK_BLOOMS_PER_MINUTE)} Blooms/min)`
@@ -1437,8 +1537,10 @@ function recordSessionToLeaderboard(options = {}) {
   if (!usingNativeLeaderboard) {
     leaderboardEntries = localEntries;
   }
-  postNativeGameCenter("submitScore", { score: localEntry.totalBlooms, crates: localEntry.totalCrates });
-  if (usingNativeLeaderboard && refreshNative) {
+  if (shouldShowOnGameCenter()) {
+    postNativeGameCenter("submitScore", { score: localEntry.totalBlooms, crates: localEntry.totalCrates });
+  }
+  if (usingNativeLeaderboard && refreshNative && shouldShowOnGameCenter()) {
     nativeLeaderboardRequested = false;
     requestNativeLeaderboard();
   }
@@ -1477,11 +1579,13 @@ function normalizeNativeLeaderboardEntry(entry) {
 
 function receiveNativeLeaderboard(payload = {}) {
   nativeLeaderboardRequested = false;
-  const nativeEntries = Array.isArray(payload.entries)
-    ? payload.entries.map(normalizeNativeLeaderboardEntry).filter(Boolean)
-    : [];
   nativeLocalPlayerID = typeof payload.localPlayerID === "string" ? payload.localPlayerID : "";
   nativeLocalPlayerName = typeof payload.localPlayerName === "string" ? payload.localPlayerName.trim() : nativeLocalPlayerName;
+  const localEntryIds = new Set([localPlayerProfile.id, nativeLocalPlayerID].filter(Boolean));
+  const nativeEntries = Array.isArray(payload.entries)
+    ? payload.entries.map(normalizeNativeLeaderboardEntry).filter(Boolean)
+      .filter((entry) => shouldShowOnGameCenter() || !localEntryIds.has(entry.id))
+    : [];
 
   if (nativeEntries.length === 0) {
     usingNativeLeaderboard = hasNativeGameCenterBridge();
@@ -1497,7 +1601,7 @@ function receiveNativeLeaderboard(payload = {}) {
   usingNativeLeaderboard = true;
   leaderboardEntries = nativeEntries;
   let nativeLocalBlooms = 0;
-  if (nativeLocalPlayerID) {
+  if (nativeLocalPlayerID && shouldShowOnGameCenter()) {
     const localEntry = leaderboardEntries.find((entry) => entry.id === nativeLocalPlayerID);
     if (localEntry) {
       selectedScoreboardEntryId = localEntry.id;
@@ -1521,6 +1625,7 @@ function requestNativeLeaderboard() {
   if (nativeLeaderboardRequested) return;
   nativeLeaderboardRequested = postNativeGameCenter("loadLeaderboard", {
     limit: NATIVE_LEADERBOARD_REQUEST_LIMIT,
+    showLocalPlayer: shouldShowOnGameCenter(),
   });
 }
 
@@ -1556,9 +1661,17 @@ function formatLeaderboardDisplayName(entry, isLocal) {
 }
 
 function buildDisplayLeaderboardEntries() {
+  const localEntryIds = new Set([localPlayerProfile.id, nativeLocalPlayerID].filter(Boolean));
   const displayEntries = leaderboardEntries
     .filter((entry) => shouldUseDemoLeaderboardRows() || !entry.isNpc)
+    .filter((entry) => shouldDisplayLocalLeaderboardEntry() || !localEntryIds.has(entry.id))
     .map((entry) => ({ ...entry }));
+
+  if (!shouldDisplayLocalLeaderboardEntry()) {
+    sortLeaderboard(displayEntries);
+    return displayEntries;
+  }
+
   const localEntryID = nativeLocalPlayerID || localPlayerProfile.id;
   let localEntry = displayEntries.find((entry) => entry.id === localEntryID)
     || displayEntries.find((entry) => entry.id === localPlayerProfile.id);
@@ -1626,7 +1739,9 @@ function renderLeaderboard() {
     ? visibleEntries.filter((entry) => entry.name.toLowerCase().includes(normalizedQuery))
     : visibleEntries;
   const topEntries = matchingEntries.slice(0, MAX_LEADERBOARD_ENTRIES);
-  const localEntryIds = new Set([localPlayerProfile.id, nativeLocalPlayerID].filter(Boolean));
+  const localEntryIds = shouldDisplayLocalLeaderboardEntry()
+    ? new Set([localPlayerProfile.id, nativeLocalPlayerID].filter(Boolean))
+    : new Set();
   const localRank = visibleEntries.findIndex((entry) => localEntryIds.has(entry.id));
   const selectedEntry = matchingEntries.find((entry) => entry.id === selectedScoreboardEntryId)
     || matchingEntries.find((entry) => localEntryIds.has(entry.id))
@@ -1655,7 +1770,7 @@ function renderLeaderboard() {
     item.tabIndex = 0;
     item.setAttribute("role", "button");
     const rank = entry.nativeRank || visibleEntries.findIndex((candidate) => candidate.id === entry.id) + 1;
-    const isLocal = entry.id === localPlayerProfile.id || entry.id === nativeLocalPlayerID;
+    const isLocal = localEntryIds.has(entry.id);
     if (isLocal) {
       item.classList.add("you");
     }
@@ -1715,12 +1830,30 @@ function renderLeaderboard() {
 }
 
 function getLocalLeaderboardEntry() {
-  const displayEntries = buildDisplayLeaderboardEntries();
+  const localEntryID = nativeLocalPlayerID || localPlayerProfile.id;
+  const displayEntries = leaderboardEntries.map((entry) => ({ ...entry }));
   if (nativeLocalPlayerID) {
     const nativeLocalEntry = displayEntries.find((entry) => entry.id === nativeLocalPlayerID);
-    if (nativeLocalEntry) return nativeLocalEntry;
+    if (nativeLocalEntry) {
+      nativeLocalEntry.name = getLocalLeaderboardName(nativeLocalEntry);
+      const progress = getCurrentSessionLeaderboardProgress();
+      nativeLocalEntry.totalBlooms = Math.max(0, Math.floor(nativeLocalEntry.totalBlooms) || 0, playerTotals.blooms) + progress.blooms;
+      nativeLocalEntry.totalCrates = Math.max(0, Math.floor(nativeLocalEntry.totalCrates) || 0, playerTotals.crates) + progress.crates;
+      return nativeLocalEntry;
+    }
   }
-  return ensurePlayerEntry(displayEntries, localPlayerProfile);
+  const localEntry = displayEntries.find((entry) => entry.id === localPlayerProfile.id) || {
+    id: localEntryID,
+    name: localPlayerProfile.name,
+    totalBlooms: 0,
+    totalCrates: 0,
+    isNpc: false,
+  };
+  const progress = getCurrentSessionLeaderboardProgress();
+  localEntry.name = getLocalLeaderboardName(localEntry);
+  localEntry.totalBlooms = Math.max(0, Math.floor(localEntry.totalBlooms) || 0, playerTotals.blooms) + progress.blooms;
+  localEntry.totalCrates = Math.max(0, Math.floor(localEntry.totalCrates) || 0, playerTotals.crates) + progress.crates;
+  return localEntry;
 }
 
 function buildScoreShareText() {
@@ -1812,6 +1945,7 @@ function showHomeScreen() {
   homeScreenEl?.classList.remove("screen-hidden");
   leaderboardScreenEl?.classList.add("screen-hidden");
   premiumScreenEl?.classList.add("screen-hidden");
+  settingsScreenEl?.classList.add("screen-hidden");
   setGameUiVisible(false);
   if (overlayTitleEl) overlayTitleEl.textContent = "Bloomwave Garden";
   syncPostRunUnlockPrompt();
@@ -1827,6 +1961,7 @@ function showLeaderboardScreen() {
   homeScreenEl?.classList.add("screen-hidden");
   leaderboardScreenEl?.classList.remove("screen-hidden");
   premiumScreenEl?.classList.add("screen-hidden");
+  settingsScreenEl?.classList.add("screen-hidden");
   setGameUiVisible(false);
   syncPostRunUnlockPrompt();
   syncColorControls();
@@ -1840,8 +1975,22 @@ function showPremiumScreen() {
   homeScreenEl?.classList.add("screen-hidden");
   leaderboardScreenEl?.classList.add("screen-hidden");
   premiumScreenEl?.classList.remove("screen-hidden");
+  settingsScreenEl?.classList.add("screen-hidden");
   setGameUiVisible(false);
   syncBackdropTiles();
+  syncColorControls();
+}
+
+function showSettingsScreen() {
+  if (!overlayEl) return;
+  overlayEl.classList.remove("hidden");
+  overlayEl.classList.add("menu-open");
+  homeScreenEl?.classList.add("screen-hidden");
+  leaderboardScreenEl?.classList.add("screen-hidden");
+  premiumScreenEl?.classList.add("screen-hidden");
+  settingsScreenEl?.classList.remove("screen-hidden");
+  setGameUiVisible(false);
+  syncSettingsControls();
   syncColorControls();
 }
 
@@ -1855,7 +2004,7 @@ function hideMenuOverlay() {
 
 function setGameUiVisible(visible) {
   stageWrapEl?.classList.toggle("is-game-live", visible);
-  const targets = [hudEl, statusEl, menuCornerBtn].filter(Boolean);
+  const targets = [hudEl, statusEl, menuCornerBtn, settingsCornerBtn].filter(Boolean);
   for (const target of targets) {
     target.classList.toggle("is-hidden", !visible);
   }
@@ -1879,6 +2028,7 @@ class LofiEngine {
     this.nativeAudioOnly = Boolean(window.__BLOOM_NATIVE_AUDIO_ONLY);
     this.lastDefaultToneAt = -Infinity;
     this.defaultToneCooldown = 0.08;
+    this.effectVolume = 1;
     this.unlockSample = null;
     this.unlockSampleLoading = null;
   }
@@ -1931,13 +2081,14 @@ class LofiEngine {
     if (this.nativeAudioOnly) return false;
     if (!this.context || !this.master) return false;
     if (this.context.state !== "running") return false;
+    if (this.effectVolume <= 0) return false;
 
     const now = this.context.currentTime;
     if (this.unlockSample) {
       const source = this.context.createBufferSource();
       const gain = this.context.createGain();
       source.buffer = this.unlockSample;
-      gain.gain.setValueAtTime(0.34, now);
+      gain.gain.setValueAtTime(0.34 * this.effectVolume, now);
       source.connect(gain);
       gain.connect(this.master);
       source.start(now);
@@ -1958,7 +2109,7 @@ class LofiEngine {
     filter.Q.setValueAtTime(0.9, now);
 
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.22, now + 0.012);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, 0.22 * this.effectVolume), now + 0.012);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
 
     osc.connect(filter);
@@ -2059,6 +2210,7 @@ class LofiEngine {
   canPlay() {
     if (this.nativeAudioOnly) return false;
     if (!this.context || !this.master) return false;
+    if (this.effectVolume <= 0) return false;
     if (this.context.state !== "running") {
       void this.context.resume();
       return false;
@@ -2082,6 +2234,11 @@ class LofiEngine {
     }
   }
 
+  setEffectVolume(volume) {
+    const nextVolume = Number(volume);
+    this.effectVolume = Number.isFinite(nextVolume) ? clamp(nextVolume, 0, 1) : 1;
+  }
+
   toggleMuted() {
     this.setMuted(!this.muted);
   }
@@ -2089,6 +2246,7 @@ class LofiEngine {
   playVoice(freq, duration, type, gainLevel, cutoff) {
     if (!this.context || !this.master) return false;
     if (this.activeVoices >= this.maxVoices) return false;
+    if (this.effectVolume <= 0) return false;
 
     const now = this.context.currentTime;
     const osc = this.context.createOscillator();
@@ -2103,8 +2261,9 @@ class LofiEngine {
 
     const attack = Math.min(0.03, Math.max(0.012, duration * 0.2));
     const release = Math.min(0.16, Math.max(0.06, duration * 0.75));
+    const scaledGainLevel = Math.max(0.0001, gainLevel * this.effectVolume);
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(gainLevel, now + attack);
+    gain.gain.exponentialRampToValueAtTime(scaledGainLevel, now + attack);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + duration + release);
 
     osc.connect(filter);
@@ -2154,11 +2313,12 @@ class LofiEngine {
 }
 
 const lofi = new LofiEngine();
+lofi.setEffectVolume(appSettings.tapEffectVolume);
 let didRunAudioUnlockPing = false;
 
 function postNativeAudio(event, payload = {}) {
   const webAudioState = lofi.context ? lofi.context.state : "no-context";
-  const shouldBridge = lofi.nativeAudioOnly || webAudioState !== "running" || event === "gesture";
+  const shouldBridge = lofi.nativeAudioOnly || webAudioState !== "running" || event === "gesture" || event === "settings";
   if (!shouldBridge) return;
 
   const handler = window.webkit && window.webkit.messageHandlers
@@ -2172,6 +2332,7 @@ function postNativeAudio(event, payload = {}) {
       event,
       webAudioState,
       nativeAudioOnly: Boolean(lofi.nativeAudioOnly),
+      effectVolume: appSettings.tapEffectVolume,
       ...payload,
     });
   } catch {
@@ -4812,6 +4973,11 @@ if (postRunUnlockBtn) {
     event.preventDefault();
     event.stopPropagation();
     const backdrop = postRunUnlockBtn.dataset.backdrop;
+    if (backdrop && BACKDROP_IDS.includes(backdrop) && isBackdropUsable(backdrop)) {
+      selectBackdrop(backdrop);
+      startSession();
+      return;
+    }
     showPremiumScreen();
     if (backdrop && BACKDROP_IDS.includes(backdrop) && !isBackdropUnlocked(backdrop)) {
       showBackgroundPreview(backdrop);

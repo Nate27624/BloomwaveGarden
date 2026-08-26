@@ -198,11 +198,13 @@ button.menu-btn:focus-visible {
   width: 30px;
   height: 30px;
   border: 2px solid rgba(44, 29, 16, 0.86);
+  box-sizing: border-box;
   background:
     linear-gradient(180deg, #aeead0 0 48%, #f5c46a 48% 100%);
   box-shadow:
     inset 0 0 0 2px rgba(255, 245, 207, 0.34),
     0 2px 0 rgba(67, 47, 24, 0.24);
+  overflow: hidden;
   position: relative;
 }
 
@@ -226,10 +228,10 @@ button.menu-btn:focus-visible {
 .post-run-unlock-icon::after {
   left: 5px;
   bottom: 7px;
-  width: 22px;
+  width: 18px;
   height: 3px;
   background: #8e6234;
-  box-shadow: 4px -4px 0 #d88b4d;
+  box-shadow: 3px -4px 0 #d88b4d;
 }
 
 .post-run-unlock-icon span {
@@ -284,10 +286,16 @@ button.menu-btn:focus-visible {
   white-space: nowrap;
 }
 
+.post-run-unlock-price:empty {
+  display: none;
+}
+
 .post-run-unlock-btn {
+  width: 48px;
   min-height: 38px;
   border: 2px solid rgba(26, 21, 12, 0.9);
   border-radius: 0;
+  padding: 0;
   background: linear-gradient(180deg, #c5ffe0, #6fdfaa 62%, #58c98f);
   color: #2c1d10;
   font-family: var(--pixel-font);
@@ -297,6 +305,7 @@ button.menu-btn:focus-visible {
   display: grid;
   place-items: center;
   gap: 1px;
+  text-align: center;
   box-shadow:
     inset 0 -2px 0 rgba(0, 0, 0, 0.16),
     0 2px 0 rgba(67, 47, 24, 0.24);
@@ -304,7 +313,9 @@ button.menu-btn:focus-visible {
 
 .post-run-unlock-btn span,
 .post-run-unlock-btn small {
-  display: block;
+  display: grid;
+  place-items: center;
+  width: 100%;
   line-height: 1;
   white-space: nowrap;
 }
@@ -626,6 +637,12 @@ button.menu-btn:focus-visible {
     0 0 0 2px rgba(120, 80, 28, 0.24);
 }
 
+.background-tile.is-daily-deal::after {
+  background: #c5ffe0;
+  border-color: #327870;
+  color: #1f463f;
+}
+
 .background-tile::after {
   content: attr(data-price);
   position: absolute;
@@ -640,11 +657,12 @@ button.menu-btn:focus-visible {
   border: 2px solid #5b3517;
   color: #33200d;
   font-weight: 900;
-  font-size: 0.66rem;
+  font-size: 0.62rem;
+  white-space: nowrap;
 }
 
 .background-tile.classic::after {
-  content: "BASE";
+  display: none;
 }
 
 .background-tile.is-free::after {
@@ -652,7 +670,7 @@ button.menu-btn:focus-visible {
 }
 
 .background-tile.classic.is-free::after {
-  content: "BASE";
+  display: none;
 }
 
 .background-tile[data-price=""]::after {
@@ -688,17 +706,7 @@ button.menu-btn:focus-visible {
 }
 
 .background-tile.is-daily-deal span::after {
-  content: attr(data-deal);
-  position: absolute;
-  right: 5px;
-  bottom: calc(100% + 5px);
-  padding: 2px 4px;
-  background: #c5ffe0;
-  border: 2px solid #5b3517;
-  color: #2c1d10;
-  font-size: 0.58rem;
-  font-weight: 900;
-  text-shadow: none;
+  display: none;
 }
 
 .background-preview-modal {
@@ -787,12 +795,10 @@ button.menu-btn:focus-visible {
 .background-preview-blooms {
   margin: 0;
   color: rgba(59, 42, 23, 0.82);
-  font-family: var(--pixel-font);
-  font-size: 0.64rem;
-  font-weight: 800;
-  line-height: 1.25;
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1.32;
   text-align: center;
-  text-transform: uppercase;
 }
 
 .background-preview-progress {
@@ -823,6 +829,10 @@ button.menu-btn:focus-visible {
   line-height: 1.2;
   text-align: center;
   text-transform: uppercase;
+}
+
+.background-preview-remaining.is-hidden {
+  display: none;
 }
 
 .unlock-btn.is-hidden {

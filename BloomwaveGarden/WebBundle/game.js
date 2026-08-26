@@ -147,6 +147,17 @@ const BACKDROP_DISPLAY_NAMES = {
   frost: "Frost Meadow",
   azure: "Azure Reef",
 };
+const BACKDROP_DESCRIPTIONS = {
+  classic: "Sunny rows, soft grass, and the original farm view.",
+  twilight: "Neon skyline, glowing windows, and a deep violet grove.",
+  aurora: "Moonlit waterfalls, fireflies, and cool forest mist.",
+  ember: "Grazing deer, warm grass, and a calm ember meadow.",
+  color: "A clean field in your chosen color.",
+  flag: "Flag of the United States.",
+  rose: "Pink dunes, rose-tinted grass, and a soft desert glow.",
+  frost: "Snowy fields, pale trees, and a quiet winter horizon.",
+  azure: "Blue reef water and coral shapes.",
+};
 const BACKDROP_PREVIEW_CLASSES = {
   classic: "classic",
   twilight: "twilight",
@@ -556,8 +567,12 @@ function grantTemporaryBackdropAccess(backdrop, hours = REWARDED_BACKDROP_ACCESS
     [backdrop]: Date.now() + hours * 60 * 60 * 1000,
   };
   writeTemporaryBackdropAccess(temporaryBackdropAccess);
-  selectBackdrop(backdrop);
-  showBackgroundPreview(backdrop);
+  selectedLockedBackdrop = null;
+  state.backdrop = backdrop;
+  writeBackdropPreference(backdrop);
+  hideBackgroundPreview();
+  startSession();
+  syncBackdropTiles();
 }
 
 function writeBackdropPreference(backdrop) {
@@ -642,7 +657,7 @@ function syncBackdropTiles() {
     const unlocked = isBackdropUnlocked(backdrop);
     const tempAccess = hasTemporaryBackdropAccess(backdrop);
     const usable = unlocked || tempAccess;
-    const dailyDeal = isDailyDealBackdrop(backdrop) && !unlocked;
+    const dailyDeal = isDailyDealBackdrop(backdrop) && !unlocked && !tempAccess;
     tile.classList.toggle("is-selected", selected);
     tile.classList.toggle("is-free", free);
     tile.classList.toggle("is-locked", !usable);
@@ -650,9 +665,9 @@ function syncBackdropTiles() {
     tile.classList.toggle("is-daily-deal", dailyDeal);
     tile.setAttribute("aria-pressed", selected ? "true" : "false");
     tile.setAttribute("aria-label", `${BACKDROP_DISPLAY_NAMES[backdrop] || "Background"} ${usable ? "available" : "locked"}`);
-    tile.dataset.price = getBackdropBadge(backdrop, unlocked, tempAccess);
-    tile.dataset.deal = dailyDeal ? "Deal" : "";
-    tile.querySelector("span")?.setAttribute("data-deal", dailyDeal ? "Deal" : "");
+    tile.dataset.price = dailyDeal ? `Deal ${getBackdropPriceLabel(backdrop)}` : getBackdropBadge(backdrop, unlocked, tempAccess);
+    tile.dataset.deal = "";
+    tile.querySelector("span")?.setAttribute("data-deal", "");
   }
 
   if (unlockBackgroundsBtn) {
@@ -760,9 +775,7 @@ function showBackgroundPreview(backdrop) {
     backgroundPreviewUseBtn.dataset.backdrop = backdrop;
   }
   if (backgroundPreviewBloomsEl) {
-    backgroundPreviewBloomsEl.textContent = hasBloomUnlock
-      ? `You have ${formatLargeNumber(stats.totalBlooms)} Blooms`
-      : `Purchase forever, or watch an ad to equip for ${REWARDED_BACKDROP_ACCESS_HOURS}h.`;
+    backgroundPreviewBloomsEl.textContent = BACKDROP_DESCRIPTIONS[backdrop] || "";
   }
   if (backgroundPreviewProgressFillEl) {
     backgroundPreviewProgressFillEl.style.width = formatUnlockProgressWidth(progress.progress);
@@ -778,13 +791,14 @@ function showBackgroundPreview(backdrop) {
         ? `Equipped for ${formatTemporaryAccessRemaining(tempExpiresAt)}`
         : hasBloomUnlock
           ? `${formatLargeNumber(remainingBlooms)} Blooms left`
-          : `Unlock forever ${price}`;
+          : "";
+    backgroundPreviewRemainingEl.classList.toggle("is-hidden", !backgroundPreviewRemainingEl.textContent);
   }
   if (backgroundPreviewAdBtn) {
     const canWatchAd = backdrop !== "classic" && !unlocked && !tempAccess;
     backgroundPreviewAdBtn.textContent = tempAccess && !unlocked
       ? `Equipped ${formatTemporaryAccessRemaining(getTemporaryBackdropExpiresAt(backdrop))}`
-      : `Watch Ad: Equip ${REWARDED_BACKDROP_ACCESS_HOURS}h`;
+      : `Watch Ad: 24h Access`;
     backgroundPreviewAdBtn.disabled = !canWatchAd;
     backgroundPreviewAdBtn.classList.toggle("is-hidden", backdrop === "classic" || unlocked);
     backgroundPreviewAdBtn.dataset.backdrop = canWatchAd ? backdrop : "";
@@ -1305,9 +1319,9 @@ function getNextBackdropUnlockCandidate(stats = getTemporaryUsageStats()) {
 
 function getBackdropBadge(backdrop, unlocked, tempAccess = false) {
   if (backdropUnlocks.lifetime) return "";
-  if (BASE_UNLOCKED_BACKDROP_IDS.includes(backdrop)) return "BASE";
+  if (BASE_UNLOCKED_BACKDROP_IDS.includes(backdrop)) return "";
   if (unlocked) return "";
-  if (tempAccess) return "24H";
+  if (tempAccess) return "";
   if (isBackdropFree(backdrop)) return formatShortBloomTarget(getBackdropUnlockProgress(backdrop).targetBlooms);
   return getBackdropPriceLabel(backdrop);
 }
@@ -1320,17 +1334,25 @@ function syncPostRunUnlockPrompt() {
 
   if (displayedBlooms <= 0 || !candidate) {
     postRunUnlockPromptEl.classList.add("screen-hidden");
-    if (postRunUnlockBtn) postRunUnlockBtn.dataset.backdrop = "";
+    if (postRunUnlockBtn) {
+      postRunUnlockBtn.dataset.backdrop = "";
+      const labelEl = postRunUnlockBtn.querySelector("span");
+      if (labelEl) labelEl.textContent = "View";
+    }
     if (postRunUnlockPriceEl) postRunUnlockPriceEl.textContent = "";
     if (postRunUnlockProgressFillEl) postRunUnlockProgressFillEl.style.width = "0%";
     return;
   }
 
   const name = BACKDROP_DISPLAY_NAMES[candidate.backdrop] || "a background";
-  const price = getBackdropPriceLabel(candidate.backdrop);
+  const tempAccess = hasTemporaryBackdropAccess(candidate.backdrop);
   postRunUnlockTextEl.textContent = `${name}: ${formatLargeNumber(displayedBlooms)} / ${formatCompactNumber(candidate.progress.targetBlooms)} Blooms`;
-  if (postRunUnlockBtn) postRunUnlockBtn.dataset.backdrop = candidate.backdrop;
-  if (postRunUnlockPriceEl) postRunUnlockPriceEl.textContent = `Try now free for ${REWARDED_BACKDROP_ACCESS_HOURS}h`;
+  if (postRunUnlockBtn) {
+    postRunUnlockBtn.dataset.backdrop = candidate.backdrop;
+    const labelEl = postRunUnlockBtn.querySelector("span");
+    if (labelEl) labelEl.textContent = tempAccess ? "Equip" : "View";
+  }
+  if (postRunUnlockPriceEl) postRunUnlockPriceEl.textContent = tempAccess ? "" : `Watch ad for ${REWARDED_BACKDROP_ACCESS_HOURS}h access`;
   if (postRunUnlockProgressFillEl) {
     postRunUnlockProgressFillEl.style.width = formatUnlockProgressWidth(candidate.progress.progress);
   }
@@ -1341,7 +1363,7 @@ function buildBackdropSelectionText(backdrop, unlocked, stats = getTemporaryUsag
   const name = BACKDROP_DISPLAY_NAMES[backdrop] || "Selected";
   const progress = getBackdropUnlockProgress(backdrop, stats);
   if (progress.targetBlooms <= 0 && !unlocked) {
-    return `${name} preview. Unlock forever, or watch an ad to equip for ${REWARDED_BACKDROP_ACCESS_HOURS}h.`;
+    return BACKDROP_DESCRIPTIONS[backdrop] || `${name} preview.`;
   }
   const targetText = progress.targetHours > 0
     ? `about ${formatUnlockTime(progress.targetHours)} of farming (${formatLargeNumber(progress.targetBlooms)} Blooms at ${formatLargeNumber(BACKDROP_UNLOCK_BLOOMS_PER_MINUTE)} Blooms/min)`
@@ -4812,6 +4834,11 @@ if (postRunUnlockBtn) {
     event.preventDefault();
     event.stopPropagation();
     const backdrop = postRunUnlockBtn.dataset.backdrop;
+    if (backdrop && BACKDROP_IDS.includes(backdrop) && isBackdropUsable(backdrop)) {
+      selectBackdrop(backdrop);
+      startSession();
+      return;
+    }
     showPremiumScreen();
     if (backdrop && BACKDROP_IDS.includes(backdrop) && !isBackdropUnlocked(backdrop)) {
       showBackgroundPreview(backdrop);

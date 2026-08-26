@@ -58,7 +58,7 @@
                 <div class="post-run-unlock-meter" aria-hidden="true">
                   <span id="post-run-unlock-progress-fill"></span>
                 </div>
-                <small id="post-run-unlock-price" class="post-run-unlock-price">Try now free for 24h</small>
+                <small id="post-run-unlock-price" class="post-run-unlock-price">Watch ad for 24h access</small>
               </div>
               <button id="post-run-unlock-btn" type="button" class="post-run-unlock-btn">
                 <span>View</span>
@@ -149,6 +149,31 @@
             </div>
           </section>
 
+          <section id="settings-screen" class="menu-panel screen-hidden">
+            <h2>Settings</h2>
+            <div class="settings-list">
+              <label class="settings-row" for="tap-volume-input">
+                <span>
+                  <strong>Tap Sound</strong>
+                  <small>Harvest effect volume</small>
+                </span>
+                <input id="tap-volume-input" class="settings-slider" type="range" min="0" max="100" step="5" value="100" />
+                <output id="tap-volume-value" class="settings-value" for="tap-volume-input">100%</output>
+              </label>
+              <label class="settings-toggle" for="game-center-visibility-toggle">
+                <span>
+                  <strong>Game Center</strong>
+                  <small>Show me on leaderboard</small>
+                </span>
+                <input id="game-center-visibility-toggle" type="checkbox" checked />
+                <span class="toggle-ui" aria-hidden="true"></span>
+              </label>
+            </div>
+            <div class="menu-actions single-action">
+              <button id="settings-back-btn" type="button" class="menu-btn">Back</button>
+            </div>
+          </section>
+
           <section id="background-preview-modal" class="background-preview-modal screen-hidden" aria-label="Background preview">
             <div class="background-preview-dialog">
               <div class="background-preview-header">
@@ -165,7 +190,7 @@
                   </div>
                   <p id="background-preview-remaining" class="background-preview-remaining">0 Blooms left</p>
                 </div>
-                <button id="background-preview-ad-btn" type="button" class="unlock-btn ad-equip-btn">Watch Ad: Equip 24h</button>
+                <button id="background-preview-ad-btn" type="button" class="unlock-btn ad-equip-btn">Watch Ad: 24h Access</button>
                 <button id="background-preview-purchase-btn" type="button" class="unlock-btn">Purchase for $.50</button>
               </div>
             </div>
@@ -181,6 +206,22 @@
           <svg class="menu-corner-icon" viewBox="0 0 16 16" aria-hidden="true">
             <polygon points="2,8 8,3 14,8 14,9 13,9 13,14 9,14 9,10 7,10 7,14 3,14 3,9 2,9" fill="#4f2f14"></polygon>
             <rect x="6" y="4" width="4" height="1" fill="#7f4c1f"></rect>
+          </svg>
+        </button>
+        <button id="settings-corner-btn" class="settings-corner is-hidden" type="button" aria-label="Open settings">
+          <svg class="settings-corner-icon" viewBox="0 0 16 16" aria-hidden="true">
+            <rect x="7" y="1" width="2" height="3" fill="#4f2f14"></rect>
+            <rect x="7" y="12" width="2" height="3" fill="#4f2f14"></rect>
+            <rect x="1" y="7" width="3" height="2" fill="#4f2f14"></rect>
+            <rect x="12" y="7" width="3" height="2" fill="#4f2f14"></rect>
+            <rect x="3" y="3" width="2" height="2" fill="#4f2f14"></rect>
+            <rect x="11" y="3" width="2" height="2" fill="#4f2f14"></rect>
+            <rect x="3" y="11" width="2" height="2" fill="#4f2f14"></rect>
+            <rect x="11" y="11" width="2" height="2" fill="#4f2f14"></rect>
+            <rect x="5" y="4" width="6" height="8" fill="#7f4c1f"></rect>
+            <rect x="4" y="5" width="8" height="6" fill="#7f4c1f"></rect>
+            <rect x="6" y="6" width="4" height="4" fill="#fff1ce"></rect>
+            <rect x="7" y="7" width="2" height="2" fill="#4f2f14"></rect>
           </svg>
         </button>
         <button id="color-backdrop-btn" class="color-backdrop-btn is-hidden" type="button" aria-label="Choose backdrop color">
