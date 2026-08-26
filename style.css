@@ -198,11 +198,13 @@ button.menu-btn:focus-visible {
   width: 30px;
   height: 30px;
   border: 2px solid rgba(44, 29, 16, 0.86);
+  box-sizing: border-box;
   background:
     linear-gradient(180deg, #aeead0 0 48%, #f5c46a 48% 100%);
   box-shadow:
     inset 0 0 0 2px rgba(255, 245, 207, 0.34),
     0 2px 0 rgba(67, 47, 24, 0.24);
+  overflow: hidden;
   position: relative;
 }
 
@@ -226,10 +228,10 @@ button.menu-btn:focus-visible {
 .post-run-unlock-icon::after {
   left: 5px;
   bottom: 7px;
-  width: 22px;
+  width: 18px;
   height: 3px;
   background: #8e6234;
-  box-shadow: 4px -4px 0 #d88b4d;
+  box-shadow: 3px -4px 0 #d88b4d;
 }
 
 .post-run-unlock-icon span {
@@ -284,10 +286,16 @@ button.menu-btn:focus-visible {
   white-space: nowrap;
 }
 
+.post-run-unlock-price:empty {
+  display: none;
+}
+
 .post-run-unlock-btn {
+  width: 48px;
   min-height: 38px;
   border: 2px solid rgba(26, 21, 12, 0.9);
   border-radius: 0;
+  padding: 0;
   background: linear-gradient(180deg, #c5ffe0, #6fdfaa 62%, #58c98f);
   color: #2c1d10;
   font-family: var(--pixel-font);
@@ -297,6 +305,7 @@ button.menu-btn:focus-visible {
   display: grid;
   place-items: center;
   gap: 1px;
+  text-align: center;
   box-shadow:
     inset 0 -2px 0 rgba(0, 0, 0, 0.16),
     0 2px 0 rgba(67, 47, 24, 0.24);
@@ -304,7 +313,9 @@ button.menu-btn:focus-visible {
 
 .post-run-unlock-btn span,
 .post-run-unlock-btn small {
-  display: block;
+  display: grid;
+  place-items: center;
+  width: 100%;
   line-height: 1;
   white-space: nowrap;
 }
@@ -346,6 +357,110 @@ button.menu-btn:focus-visible {
   color: rgba(87, 66, 43, 0.95);
   opacity: 1;
   font-size: 0.86rem;
+}
+
+.settings-list {
+  margin-top: 14px;
+  display: grid;
+  gap: 12px;
+  text-align: left;
+}
+
+.settings-row,
+.settings-toggle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 2px solid rgba(93, 63, 33, 0.62);
+  background: rgba(255, 252, 243, 0.72);
+  box-shadow:
+    inset 0 -2px 0 rgba(87, 58, 30, 0.1),
+    0 2px 0 rgba(67, 47, 24, 0.14);
+}
+
+.settings-row {
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 170px) 44px;
+}
+
+.settings-row span,
+.settings-toggle span:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.settings-row strong,
+.settings-toggle strong {
+  color: #2c1d10;
+  font-family: var(--pixel-font);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.settings-row small,
+.settings-toggle small {
+  color: rgba(70, 50, 30, 0.74);
+  font-size: 0.76rem;
+  font-weight: 750;
+  line-height: 1.15;
+}
+
+.settings-slider {
+  width: 100%;
+  accent-color: #5fd6ca;
+}
+
+.settings-value {
+  color: #327870;
+  font-family: var(--pixel-font);
+  font-size: 0.66rem;
+  font-weight: 900;
+  text-align: right;
+}
+
+.settings-toggle {
+  cursor: pointer;
+}
+
+.settings-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.toggle-ui {
+  width: 52px;
+  height: 28px;
+  border: 2px solid rgba(44, 29, 16, 0.88);
+  background: #8f7d69;
+  box-shadow:
+    inset 0 -3px 0 rgba(0, 0, 0, 0.16),
+    0 2px 0 rgba(67, 47, 24, 0.2);
+  position: relative;
+}
+
+.toggle-ui::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 18px;
+  height: 18px;
+  background: #fff1ce;
+  border: 1px solid rgba(44, 29, 16, 0.8);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+  transition: transform 160ms ease;
+}
+
+.settings-toggle input:checked + .toggle-ui {
+  background: linear-gradient(180deg, #7fe3c3, #3ea58f);
+}
+
+.settings-toggle input:checked + .toggle-ui::after {
+  transform: translateX(24px);
 }
 
 .leaderboard-tools {
@@ -626,6 +741,12 @@ button.menu-btn:focus-visible {
     0 0 0 2px rgba(120, 80, 28, 0.24);
 }
 
+.background-tile.is-daily-deal::after {
+  background: #c5ffe0;
+  border-color: #327870;
+  color: #1f463f;
+}
+
 .background-tile::after {
   content: attr(data-price);
   position: absolute;
@@ -640,11 +761,12 @@ button.menu-btn:focus-visible {
   border: 2px solid #5b3517;
   color: #33200d;
   font-weight: 900;
-  font-size: 0.66rem;
+  font-size: 0.62rem;
+  white-space: nowrap;
 }
 
 .background-tile.classic::after {
-  content: "BASE";
+  display: none;
 }
 
 .background-tile.is-free::after {
@@ -652,7 +774,7 @@ button.menu-btn:focus-visible {
 }
 
 .background-tile.classic.is-free::after {
-  content: "BASE";
+  display: none;
 }
 
 .background-tile[data-price=""]::after {
@@ -688,17 +810,7 @@ button.menu-btn:focus-visible {
 }
 
 .background-tile.is-daily-deal span::after {
-  content: attr(data-deal);
-  position: absolute;
-  right: 5px;
-  bottom: calc(100% + 5px);
-  padding: 2px 4px;
-  background: #c5ffe0;
-  border: 2px solid #5b3517;
-  color: #2c1d10;
-  font-size: 0.58rem;
-  font-weight: 900;
-  text-shadow: none;
+  display: none;
 }
 
 .background-preview-modal {
@@ -787,12 +899,10 @@ button.menu-btn:focus-visible {
 .background-preview-blooms {
   margin: 0;
   color: rgba(59, 42, 23, 0.82);
-  font-family: var(--pixel-font);
-  font-size: 0.64rem;
-  font-weight: 800;
-  line-height: 1.25;
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1.32;
   text-align: center;
-  text-transform: uppercase;
 }
 
 .background-preview-progress {
@@ -823,6 +933,10 @@ button.menu-btn:focus-visible {
   line-height: 1.2;
   text-align: center;
   text-transform: uppercase;
+}
+
+.background-preview-remaining.is-hidden {
+  display: none;
 }
 
 .unlock-btn.is-hidden {
@@ -1020,11 +1134,10 @@ button.menu-btn:focus-visible {
   color: #fff1ce;
 }
 
-.menu-corner {
+.menu-corner,
+.settings-corner {
   position: absolute;
   top: max(12px, calc(env(safe-area-inset-top, 0px) + 10px));
-  left: max(12px, calc(env(safe-area-inset-left, 0px) + 12px));
-  right: auto;
   width: 42px;
   height: 42px;
   display: grid;
@@ -1040,7 +1153,18 @@ button.menu-btn:focus-visible {
   transition: opacity 220ms ease, transform 220ms ease;
 }
 
-.menu-corner-icon {
+.menu-corner {
+  left: max(12px, calc(env(safe-area-inset-left, 0px) + 12px));
+  right: auto;
+}
+
+.settings-corner {
+  left: auto;
+  right: max(12px, calc(env(safe-area-inset-right, 0px) + 12px));
+}
+
+.menu-corner-icon,
+.settings-corner-icon {
   width: 20px;
   height: 20px;
   image-rendering: pixelated;
@@ -1092,6 +1216,7 @@ button.menu-btn:focus-visible {
 
 .hud.is-hidden,
 .menu-corner.is-hidden,
+.settings-corner.is-hidden,
 .color-backdrop-btn.is-hidden {
   transform: translateY(-6px);
 }
@@ -1160,6 +1285,15 @@ button.secondary {
     grid-template-columns: 1fr;
   }
 
+  .settings-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .settings-value {
+    text-align: left;
+  }
+
   .leaderboard-list {
     max-height: min(38vh, 250px);
   }
@@ -1184,9 +1318,17 @@ button.secondary {
     top: max(8px, calc(env(safe-area-inset-top, 0px) + 8px));
   }
 
-  .menu-corner {
+  .menu-corner,
+  .settings-corner {
     top: max(8px, calc(env(safe-area-inset-top, 0px) + 8px));
+  }
+
+  .menu-corner {
     left: max(10px, calc(env(safe-area-inset-left, 0px) + 10px));
+  }
+
+  .settings-corner {
+    right: max(10px, calc(env(safe-area-inset-right, 0px) + 10px));
   }
 
   .color-backdrop-btn {
