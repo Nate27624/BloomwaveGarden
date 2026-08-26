@@ -43,8 +43,10 @@ body {
 .app {
   width: 100vw;
   width: 100dvw;
+  width: var(--app-width, 100dvw);
   height: 100vh;
   height: 100dvh;
+  height: var(--app-height, 100dvh);
   display: block;
 }
 
@@ -64,8 +66,10 @@ body {
   position: relative;
   width: 100vw;
   width: 100dvw;
+  width: var(--app-width, 100dvw);
   height: 100vh;
   height: 100dvh;
+  height: var(--app-height, 100dvh);
   border-radius: 0;
   overflow: hidden;
   box-shadow: none;
@@ -166,16 +170,17 @@ button.menu-btn:focus-visible {
 .post-run-unlock-prompt {
   margin-top: 12px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 68px;
-  gap: 10px;
+  grid-template-columns: 30px minmax(0, 1fr) 48px;
+  gap: 7px;
   align-items: center;
-  padding: 10px;
-  border: 2px solid rgba(50, 120, 112, 0.68);
+  padding: 9px;
+  border: 2px solid rgba(54, 94, 74, 0.72);
   background:
-    linear-gradient(180deg, rgba(226, 255, 241, 0.86), rgba(255, 232, 186, 0.72));
+    linear-gradient(180deg, rgba(244, 255, 238, 0.94), rgba(255, 233, 183, 0.86));
   box-shadow:
-    inset 0 -2px 0 rgba(0, 0, 0, 0.1),
-    0 2px 0 rgba(58, 38, 17, 0.18);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.42),
+    inset 0 -3px 0 rgba(88, 60, 24, 0.12),
+    0 3px 0 rgba(58, 38, 17, 0.22);
   text-align: left;
 }
 
@@ -189,31 +194,126 @@ button.menu-btn:focus-visible {
   min-width: 0;
 }
 
+.post-run-unlock-icon {
+  width: 30px;
+  height: 30px;
+  border: 2px solid rgba(44, 29, 16, 0.86);
+  background:
+    linear-gradient(180deg, #aeead0 0 48%, #f5c46a 48% 100%);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 245, 207, 0.34),
+    0 2px 0 rgba(67, 47, 24, 0.24);
+  position: relative;
+}
+
+.post-run-unlock-icon::before,
+.post-run-unlock-icon::after,
+.post-run-unlock-icon span {
+  content: "";
+  position: absolute;
+  image-rendering: pixelated;
+}
+
+.post-run-unlock-icon::before {
+  left: 6px;
+  top: 7px;
+  width: 7px;
+  height: 7px;
+  background: #56a18f;
+  box-shadow: 12px 3px 0 #327870;
+}
+
+.post-run-unlock-icon::after {
+  left: 5px;
+  bottom: 7px;
+  width: 22px;
+  height: 3px;
+  background: #8e6234;
+  box-shadow: 4px -4px 0 #d88b4d;
+}
+
+.post-run-unlock-icon span {
+  right: 6px;
+  top: 6px;
+  width: 4px;
+  height: 4px;
+  background: #fff6c8;
+  box-shadow: 0 0 0 1px rgba(255, 246, 200, 0.38);
+}
+
 .post-run-unlock-kicker {
-  color: #327870;
+  color: #2f756c;
   font-family: var(--pixel-font);
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   font-weight: 900;
   text-transform: uppercase;
 }
 
 .post-run-unlock-copy p {
   color: #2c1d10;
-  font-size: 0.82rem;
+  font-size: clamp(0.58rem, 1.9vw, 0.72rem);
   font-weight: 750;
-  line-height: 1.25;
+  line-height: 1.12;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.post-run-unlock-meter {
+  height: 7px;
+  border: 1px solid rgba(52, 36, 18, 0.72);
+  background: rgba(75, 54, 30, 0.18);
+  overflow: hidden;
+}
+
+.post-run-unlock-meter span {
+  display: block;
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #6fdfaa, #ffd768);
+}
+
+.post-run-unlock-price {
+  color: rgba(70, 50, 30, 0.72);
+  font-family: var(--ui-font);
+  font-size: 0.62rem;
+  font-weight: 850;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .post-run-unlock-btn {
-  min-height: 42px;
+  min-height: 38px;
   border: 2px solid rgba(26, 21, 12, 0.9);
   border-radius: 0;
-  background: linear-gradient(180deg, #c5ffe0, #6fdfaa);
+  background: linear-gradient(180deg, #c5ffe0, #6fdfaa 62%, #58c98f);
   color: #2c1d10;
   font-family: var(--pixel-font);
-  font-size: 0.72rem;
+  font-size: 0.66rem;
   font-weight: 900;
   text-transform: uppercase;
+  display: grid;
+  place-items: center;
+  gap: 1px;
+  box-shadow:
+    inset 0 -2px 0 rgba(0, 0, 0, 0.16),
+    0 2px 0 rgba(67, 47, 24, 0.24);
+}
+
+.post-run-unlock-btn span,
+.post-run-unlock-btn small {
+  display: block;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.post-run-unlock-btn small {
+  color: #327870;
+  font-family: var(--ui-font);
+  font-size: 0.66rem;
+  font-weight: 950;
 }
 
 .menu-icon-btn {
@@ -519,6 +619,13 @@ button.menu-btn:focus-visible {
     0 0 0 2px rgba(67, 47, 24, 0.36);
 }
 
+.background-tile.is-daily-deal {
+  border-color: #ffd768;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 215, 104, 0.72),
+    0 0 0 2px rgba(120, 80, 28, 0.24);
+}
+
 .background-tile::after {
   content: attr(data-price);
   position: absolute;
@@ -572,11 +679,26 @@ button.menu-btn:focus-visible {
 }
 
 .background-tile span {
+  position: relative;
   display: block;
   width: 100%;
   padding: 6px;
   background: rgba(20, 13, 8, 0.58);
   font-size: 0.72rem;
+}
+
+.background-tile.is-daily-deal span::after {
+  content: attr(data-deal);
+  position: absolute;
+  right: 5px;
+  bottom: calc(100% + 5px);
+  padding: 2px 4px;
+  background: #c5ffe0;
+  border: 2px solid #5b3517;
+  color: #2c1d10;
+  font-size: 0.58rem;
+  font-weight: 900;
+  text-shadow: none;
 }
 
 .background-preview-modal {
@@ -640,7 +762,7 @@ button.menu-btn:focus-visible {
 .background-preview-actions {
   margin-top: 10px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1.18fr) repeat(2, minmax(0, 0.91fr));
   gap: 10px;
   align-items: start;
 }
@@ -656,6 +778,10 @@ button.menu-btn:focus-visible {
   font-size: 0.74rem;
   line-height: 1.18;
   letter-spacing: 0;
+}
+
+.background-preview-actions .ad-equip-btn {
+  background: linear-gradient(180deg, #d8fbff, #82d3d9);
 }
 
 .background-preview-blooms {
@@ -674,6 +800,10 @@ button.menu-btn:focus-visible {
   border: 2px solid rgba(52, 36, 18, 0.82);
   background: rgba(94, 69, 38, 0.2);
   overflow: hidden;
+}
+
+.background-preview-progress.is-hidden {
+  display: none;
 }
 
 .background-preview-progress span {
@@ -785,6 +915,13 @@ button.menu-btn:focus-visible {
   grid-template-columns: 1fr;
 }
 
+.purchase-utility-actions {
+  display: flex;
+  justify-content: flex-end;
+  min-height: 24px;
+  margin-top: -2px;
+}
+
 .funding-note {
   margin: 6px 0;
   color: rgba(59, 42, 23, 0.82);
@@ -797,38 +934,6 @@ button.menu-btn:focus-visible {
   font-weight: 650;
 }
 
-.lifetime-value {
-  margin: 8px 0 6px;
-  padding: 8px 10px;
-  border: 2px solid rgba(93, 63, 33, 0.36);
-  background:
-    linear-gradient(180deg, rgba(216, 251, 255, 0.72), rgba(255, 232, 186, 0.62));
-  display: grid;
-  gap: 4px;
-  text-align: left;
-}
-
-.lifetime-value.is-active {
-  border-color: rgba(50, 120, 112, 0.7);
-  background:
-    linear-gradient(180deg, rgba(197, 255, 224, 0.72), rgba(216, 251, 255, 0.58));
-}
-
-.lifetime-value-kicker {
-  color: #327870;
-  font-family: var(--pixel-font);
-  font-size: 0.62rem;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.lifetime-value-text {
-  color: rgba(44, 29, 16, 0.9);
-  font-size: 0.76rem;
-  font-weight: 700;
-  line-height: 1.3;
-}
-
 .unlock-btn:disabled {
   cursor: default;
   filter: saturate(0.65);
@@ -837,16 +942,55 @@ button.menu-btn:focus-visible {
 
 .lifetime-btn {
   background: linear-gradient(180deg, #d8fbff, #82d3d9);
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  line-height: 1.1;
+}
+
+.lifetime-btn-main,
+.lifetime-btn-note {
+  display: block;
+}
+
+.lifetime-btn-note {
+  color: #327870;
+  font-size: 0.58rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.restore-btn {
+  border: 0;
+  background: transparent;
+  color: rgba(50, 64, 70, 0.78);
+  font-family: var(--ui-font);
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: none;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  min-height: 24px;
+  padding: 0 2px;
+  box-shadow: none;
+}
+
+.restore-btn:hover,
+.restore-btn:focus-visible {
+  color: #327870;
+  transform: none;
+  filter: none;
 }
 
 .hud {
   position: absolute;
-  left: 62px;
-  top: 12px;
+  left: max(64px, calc(env(safe-area-inset-left, 0px) + 64px));
+  right: max(10px, calc(env(safe-area-inset-right, 0px) + 10px));
+  top: max(12px, calc(env(safe-area-inset-top, 0px) + 10px));
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  max-width: calc(100vw - 160px);
+  max-width: none;
   transition: opacity 220ms ease, transform 220ms ease;
 }
 
@@ -878,8 +1022,8 @@ button.menu-btn:focus-visible {
 
 .menu-corner {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: max(12px, calc(env(safe-area-inset-top, 0px) + 10px));
+  left: max(12px, calc(env(safe-area-inset-left, 0px) + 12px));
   right: auto;
   width: 42px;
   height: 42px;
@@ -905,8 +1049,8 @@ button.menu-btn:focus-visible {
 
 .color-backdrop-btn {
   position: absolute;
-  top: 62px;
-  left: 12px;
+  top: max(62px, calc(env(safe-area-inset-top, 0px) + 60px));
+  left: max(12px, calc(env(safe-area-inset-left, 0px) + 12px));
   width: 42px;
   height: 42px;
   min-height: 42px;
@@ -941,110 +1085,6 @@ button.menu-btn:focus-visible {
   pointer-events: none;
 }
 
-.youtube-audio-panel {
-  --youtube-edge-offset: 12px;
-  --youtube-x-offset: 0px;
-  --youtube-y-offset: 0px;
-  --youtube-hover-y: 0px;
-  position: absolute;
-  right: var(--youtube-edge-offset);
-  bottom: var(--youtube-edge-offset);
-  width: 200px;
-  min-height: 200px;
-  display: grid;
-  padding: 0;
-  z-index: 6;
-  transform: translate(var(--youtube-x-offset), calc(var(--youtube-y-offset) + var(--youtube-hover-y)));
-  transition: opacity 180ms ease, transform 180ms ease;
-}
-
-.youtube-audio-panel.is-centered {
-  left: 50%;
-  right: auto;
-  --youtube-x-offset: -50%;
-}
-
-.youtube-player,
-.youtube-player iframe {
-  width: 200px;
-  height: 200px;
-  display: block;
-  border: 0;
-  background: #0f1a25;
-}
-
-.youtube-player {
-  border: 2px solid rgba(150, 100, 45, 0.94);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 243, 218, 0.4),
-    0 2px 0 rgba(86, 55, 23, 0.35);
-  overflow: hidden;
-}
-
-.youtube-audio-actions {
-  position: absolute;
-  right: 6px;
-  bottom: 6px;
-  display: flex;
-  gap: 6px;
-  z-index: 2;
-}
-
-.youtube-icon-btn,
-.youtube-show-btn {
-  width: 34px;
-  height: 34px;
-  min-height: 34px;
-  border: 2px solid rgba(26, 21, 12, 0.9);
-  border-radius: 0;
-  padding: 4px;
-  background: linear-gradient(180deg, rgba(255, 235, 196, 0.98), rgba(225, 177, 94, 0.96));
-  color: #2c1d10;
-  display: grid;
-  place-items: center;
-  box-shadow:
-    inset 0 -2px 0 rgba(0, 0, 0, 0.18),
-    0 2px 0 rgba(0, 0, 0, 0.24),
-    0 0 0 1px rgba(255, 244, 218, 0.38);
-}
-
-.youtube-action-icon,
-.youtube-show-icon {
-  width: 20px;
-  height: 20px;
-  display: block;
-  image-rendering: pixelated;
-  shape-rendering: crispEdges;
-}
-
-.youtube-icon-btn:hover,
-.youtube-icon-btn:focus-visible {
-  transform: translateY(-1px);
-  filter: brightness(1.05);
-}
-
-.youtube-show-btn:hover,
-.youtube-show-btn:focus-visible {
-  --youtube-hover-y: -1px;
-  filter: brightness(1.05);
-}
-
-.youtube-show-btn {
-  --youtube-edge-offset: 12px;
-  --youtube-x-offset: 0px;
-  --youtube-y-offset: 0px;
-  --youtube-hover-y: 0px;
-  position: absolute;
-  right: var(--youtube-edge-offset);
-  bottom: var(--youtube-edge-offset);
-  width: 42px;
-  height: 42px;
-  min-height: 42px;
-  z-index: 6;
-  transform: translate(var(--youtube-x-offset), calc(var(--youtube-y-offset) + var(--youtube-hover-y)));
-  transition: opacity 180ms ease, transform 180ms ease;
-}
-
 .is-hidden {
   opacity: 0;
   pointer-events: none;
@@ -1054,11 +1094,6 @@ button.menu-btn:focus-visible {
 .menu-corner.is-hidden,
 .color-backdrop-btn.is-hidden {
   transform: translateY(-6px);
-}
-
-.youtube-audio-panel.is-hidden,
-.youtube-show-btn.is-hidden {
-  --youtube-y-offset: -6px;
 }
 
 .controls {
@@ -1095,7 +1130,8 @@ button.secondary {
 @media (max-width: 720px) {
   .hud {
     gap: 5px;
-    max-width: calc(100vw - 76px);
+    left: max(60px, calc(env(safe-area-inset-left, 0px) + 60px));
+    right: max(8px, calc(env(safe-area-inset-right, 0px) + 8px));
   }
 
   .chip {
@@ -1120,6 +1156,10 @@ button.secondary {
     grid-template-columns: 1fr;
   }
 
+  .background-preview-actions {
+    grid-template-columns: 1fr;
+  }
+
   .leaderboard-list {
     max-height: min(38vh, 250px);
   }
@@ -1129,11 +1169,28 @@ button.secondary {
     min-height: 82px;
   }
 
-  .youtube-audio-panel {
-    --youtube-edge-offset: 8px;
+}
+
+@media (orientation: portrait) {
+  .hud {
+    top: max(16px, calc(env(safe-area-inset-top, 0px) + 8px));
+  }
+}
+
+@media (orientation: landscape) {
+  .hud {
+    left: max(64px, calc(env(safe-area-inset-left, 0px) + 64px));
+    right: max(10px, calc(env(safe-area-inset-right, 0px) + 10px));
+    top: max(8px, calc(env(safe-area-inset-top, 0px) + 8px));
   }
 
-  .youtube-show-btn {
-    --youtube-edge-offset: 8px;
+  .menu-corner {
+    top: max(8px, calc(env(safe-area-inset-top, 0px) + 8px));
+    left: max(10px, calc(env(safe-area-inset-left, 0px) + 10px));
+  }
+
+  .color-backdrop-btn {
+    top: max(56px, calc(env(safe-area-inset-top, 0px) + 56px));
+    left: max(10px, calc(env(safe-area-inset-left, 0px) + 10px));
   }
 }

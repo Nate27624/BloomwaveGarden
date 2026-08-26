@@ -14,22 +14,25 @@ const leaderboardBackBtn = document.getElementById("leaderboard-back-btn");
 const premiumBackBtn = document.getElementById("premium-back-btn");
 const unlockBackgroundsBtn = document.getElementById("unlock-backgrounds-btn");
 const unlockLifetimeBtn = document.getElementById("unlock-lifetime-btn");
+const lifetimePriceEl = document.getElementById("lifetime-price");
+const restorePurchasesBtn = document.getElementById("restore-purchases-btn");
 const premiumSelectionEl = document.getElementById("premium-selection");
-const lifetimeValueEl = document.getElementById("lifetime-value");
-const lifetimeValueKickerEl = document.getElementById("lifetime-value-kicker");
-const lifetimeValueTextEl = document.getElementById("lifetime-value-text");
 const fundingNoteEl = document.getElementById("funding-note");
 const postRunUnlockPromptEl = document.getElementById("post-run-unlock-prompt");
 const postRunUnlockTextEl = document.getElementById("post-run-unlock-text");
 const postRunUnlockBtn = document.getElementById("post-run-unlock-btn");
+const postRunUnlockPriceEl = document.getElementById("post-run-unlock-price");
+const postRunUnlockProgressFillEl = document.getElementById("post-run-unlock-progress-fill");
 const backgroundPreviewModalEl = document.getElementById("background-preview-modal");
 const backgroundPreviewTitleEl = document.getElementById("background-preview-title");
 const backgroundPreviewCloseBtn = document.getElementById("background-preview-close-btn");
 const backgroundPreviewCanvas = document.getElementById("background-preview-canvas");
 const backgroundPreviewUseBtn = document.getElementById("background-preview-use-btn");
 const backgroundPreviewBloomsEl = document.getElementById("background-preview-blooms");
+const backgroundPreviewProgressEl = document.querySelector(".background-preview-progress");
 const backgroundPreviewProgressFillEl = document.getElementById("background-preview-progress-fill");
 const backgroundPreviewRemainingEl = document.getElementById("background-preview-remaining");
+const backgroundPreviewAdBtn = document.getElementById("background-preview-ad-btn");
 const backgroundPreviewPurchaseBtn = document.getElementById("background-preview-purchase-btn");
 const backgroundTileEls = document.querySelectorAll("[data-backdrop]");
 const leaderboardListEl = document.getElementById("leaderboard-list");
@@ -41,10 +44,6 @@ const scoreboardBloomsEl = document.getElementById("scoreboard-blooms");
 const scoreboardCratesEl = document.getElementById("scoreboard-crates");
 const scoreboardCrateGridEl = document.getElementById("scoreboard-crate-grid");
 const menuCornerBtn = document.getElementById("menu-corner-btn");
-const youtubePlayerEl = document.getElementById("youtube-player");
-const youtubeHideBtn = document.getElementById("youtube-hide-btn");
-const youtubeShowBtn = document.getElementById("youtube-show-btn");
-const youtubeAudioPanelEl = document.querySelector(".youtube-audio-panel");
 const colorBackdropBtn = document.getElementById("color-backdrop-btn");
 const colorBackdropInput = document.getElementById("color-backdrop-input");
 const stageWrapEl = document.querySelector(".stage-wrap");
@@ -76,6 +75,8 @@ const MAX_VIEW_PIXELS = 1_450_000;
 const MIN_BURST_INTERVAL_MS = 240;
 const BLOCKED_SPAM_PENALTY_MS = 180;
 const OPENING_ZAP_SPAWN_COOLDOWN_SEC = 0.5;
+const LEADERBOARD_AUTOSAVE_INTERVAL_MS = 10000;
+const LEADERBOARD_AUTOSAVE_BLOOM_STEP = 1000;
 // Flower growth speed: >1 faster growth/spawn, <1 slower.
 const FLOWER_GROWTH_RATE = 0.72;
 const SCORE_COMBO_CAP = 100;
@@ -83,14 +84,18 @@ const BLUE_FLOWER_RATIO = 0.2;
 const INITIAL_FIELD_FILL_RATIO = 0.8;
 const PACKED_FIELD_RATIO = 0.95;
 const PACKED_LIGHTNING_BONUS = 6;
+const STARTING_PALETTE = 1;
 const LEADERBOARD_STORAGE_KEY = "bloomwave_leaderboard_players_v2";
 const LEGACY_LEADERBOARD_STORAGE_KEY = "bloomwave_leaderboard_v1";
 const PLAYER_PROFILE_STORAGE_KEY = "bloomwave_player_profile_v1";
+const PLAYER_TOTALS_STORAGE_KEY = "bloomwave_player_totals_v1";
 const BACKDROP_STORAGE_KEY = "bloomwave_backdrop_v1";
 const BACKDROP_COLOR_STORAGE_KEY = "bloomwave_backdrop_color_v1";
 const BACKDROP_UNLOCKS_STORAGE_KEY = "bloomwave_backdrop_unlocks_v1";
+const TEMP_BACKDROP_ACCESS_STORAGE_KEY = "bloomwave_backdrop_temp_access_v1";
 const TEMP_USAGE_LOG_STORAGE_KEY = "bloomwave_usage_log_tmp_v1";
 const FIRST_START_STORAGE_KEY = "bloomwave_first_start_seen_v1";
+const DAILY_DEAL_STORAGE_KEY = "bloomwave_daily_background_deal_v1";
 const DEFAULT_BACKDROP_COLOR = "#7c68d8";
 const BACKDROP_IDS = ["classic", "twilight", "aurora", "ember", "color", "flag", "rose", "frost", "azure"];
 const BASE_UNLOCKED_BACKDROP_IDS = ["classic"];
@@ -100,8 +105,25 @@ const BACKDROP_PRICE_LABELS = Object.fromEntries(
     .filter((backdrop) => backdrop !== "classic")
     .map((backdrop) => [backdrop, FREE_BACKDROP_IDS.includes(backdrop) ? "$.50" : "$0.99"]),
 );
-const FUNDING_NOTE_DEFAULT = "Thank you for considering purchasing a background, these funds will be put towards developing more fun, simple games with no ads!";
+const FUNDING_NOTE_DEFAULT = "Thank you for considering purchasing a background. These funds help us build more fun, simple games.";
 const FUNDING_NOTE_LIFETIME_ACTIVE = "Thank you for your purchase! More maps are planned for development.";
+const DAILY_DEAL_PRICE_LABEL = "$.50";
+const REWARDED_BACKDROP_ACCESS_HOURS = 24;
+const MIN_UNLOCK_PROGRESS_DISPLAY = 0.08;
+const LIFETIME_PRODUCT_ID = "com.nate27624.bloomwavegarden.backgrounds.lifetime";
+const BACKDROP_PRODUCT_IDS = {
+  twilight: "com.nate27624.bloomwavegarden.background.citylight",
+  aurora: "com.nate27624.bloomwavegarden.background.moonlitfalls",
+  ember: "com.nate27624.bloomwavegarden.background.emberfield",
+  color: "com.nate27624.bloomwavegarden.background.colorfield",
+  flag: "com.nate27624.bloomwavegarden.background.americanflag",
+  rose: "com.nate27624.bloomwavegarden.background.rosedunes",
+  frost: "com.nate27624.bloomwavegarden.background.frostmeadow",
+  azure: "com.nate27624.bloomwavegarden.background.azurereef",
+};
+const PRODUCT_BACKDROP_IDS = Object.fromEntries(
+  Object.entries(BACKDROP_PRODUCT_IDS).map(([backdrop, productID]) => [productID, backdrop]),
+);
 const DEFAULT_ESTIMATED_BLOOMS_PER_MINUTE = 300;
 const BACKDROP_UNLOCK_BLOOMS_PER_MINUTE = 10000;
 const BACKDROP_UNLOCK_BLOOM_ROUNDING = 10000000;
@@ -113,12 +135,6 @@ const FARMING_UNLOCK_HOURS = {
   classic: 0,
   twilight: 24,
   aurora: 120,
-  ember: 120,
-  color: 168,
-  flag: 240,
-  rose: 336,
-  frost: 72,
-  azure: 720,
 };
 const BACKDROP_DISPLAY_NAMES = {
   classic: "Classic Farm",
@@ -142,7 +158,6 @@ const BACKDROP_PREVIEW_CLASSES = {
   frost: "frost",
   azure: "azure",
 };
-const YOUTUBE_AUDIO_VIDEO_IDS = ["rFZHOHl-L8A", "X4VbdwhkE10"];
 const MAX_LEADERBOARD_ENTRIES = 10;
 const NATIVE_LEADERBOARD_REQUEST_LIMIT = 25;
 const SHOWCASE_LEADERBOARD_ENTRY = {
@@ -214,6 +229,9 @@ const BED_TEMPLATE_SLOTS = [
   { x: 246, y: 141 }, { x: 272, y: 151 }, { x: 296, y: 142 },
 ];
 let bedSlots = [];
+let fieldLayoutScaleX = 1;
+let fieldLayoutScaleY = 1;
+let fieldBurstVisualScale = 1;
 
 const SLOT_TEMPLATE_MIN_X = 30;
 const SLOT_TEMPLATE_MAX_X = 296;
@@ -231,16 +249,35 @@ const FARM_CLOUDS = [
 ];
 
 function rebuildBedSlots() {
-  const desiredFieldW = 156;
-  const desiredFieldH = 116;
-  const fieldW = clamp(Math.round(desiredFieldW), 98, Math.round(WORLD_W * 0.84));
-  const fieldH = clamp(Math.round(desiredFieldH), 84, Math.round(WORLD_H * 0.74));
+  const isPortrait = WORLD_H > WORLD_W * 1.08;
+  const isLandscape = WORLD_W > WORLD_H * 1.08;
+  const sideMargin = isLandscape ? 26 : 16;
+  const topMargin = isLandscape ? 38 : (isPortrait ? 28 : 22);
+  const bottomMargin = isPortrait ? 16 : 14;
+  const expansionBlend = 1 / 3;
+  const usableW = Math.max(98, WORLD_W - sideMargin * 2);
+  const usableH = Math.max(84, WORLD_H - topMargin - bottomMargin);
+  const originalFieldW = clamp(156, 98, Math.round(WORLD_W * 0.84));
+  const originalFieldH = clamp(116, 84, Math.round(WORLD_H * 0.74));
+  const expandedFieldW = isLandscape
+    ? usableW
+    : Math.min(usableW, Math.max(156, WORLD_W * 0.86));
+  const expandedFieldH = isPortrait
+    ? usableH
+    : Math.min(usableH, Math.max(116, WORLD_H * 0.72));
+  const fieldW = Math.round(lerp(originalFieldW, expandedFieldW, expansionBlend));
+  const fieldH = Math.round(lerp(originalFieldH, expandedFieldH, expansionBlend));
   const left = Math.round((WORLD_W - fieldW) * 0.5);
-  const right = left + fieldW;
-  const top = Math.round((WORLD_H - fieldH) * 0.48);
-  const bottom = top + fieldH;
-  const width = Math.max(24, right - left);
-  const height = Math.max(24, bottom - top);
+  const originalTop = (WORLD_H - originalFieldH) * 0.48;
+  const expandedTop = topMargin + (usableH - expandedFieldH) * (isPortrait ? 0.45 : 0.5);
+  const top = Math.round(isLandscape
+    ? Math.max(topMargin, lerp(originalTop, expandedTop, expansionBlend))
+    : lerp(originalTop, expandedTop, expansionBlend));
+  const width = Math.max(24, fieldW);
+  const height = Math.max(24, fieldH);
+  fieldLayoutScaleX = clamp(width / Math.max(1, originalFieldW), 0.85, 2.2);
+  fieldLayoutScaleY = clamp(height / Math.max(1, originalFieldH), 0.85, 2.2);
+  fieldBurstVisualScale = clamp(Math.sqrt(fieldLayoutScaleX * fieldLayoutScaleY), 0.9, 1.55);
 
   bedSlots = BED_TEMPLATE_SLOTS.map((slot, index) => {
     const nx = (slot.x - SLOT_TEMPLATE_MIN_X) / SLOT_TEMPLATE_W;
@@ -253,82 +290,22 @@ function rebuildBedSlots() {
   });
 }
 
-const YOUTUBE_PANEL_BLOCK_PADDING_CSS = 30;
-const YOUTUBE_SHOW_BLOCK_PADDING_CSS = 18;
-
-function viewportBoxToWorldRect(box, paddingCss = 10) {
-  const canvasRect = canvas.getBoundingClientRect();
-  if (!canvasRect.width || !canvasRect.height) return null;
-
-  const left = Math.max(canvasRect.left, box.left - paddingCss);
-  const right = Math.min(canvasRect.right, box.right + paddingCss);
-  const top = Math.max(canvasRect.top, box.top - paddingCss);
-  const bottom = Math.min(canvasRect.bottom, box.bottom + paddingCss);
-  if (right <= left || bottom <= top) return null;
-
-  return {
-    left: ((left - canvasRect.left) / canvasRect.width) * WORLD_W,
-    right: ((right - canvasRect.left) / canvasRect.width) * WORLD_W,
-    top: ((top - canvasRect.top) / canvasRect.height) * WORLD_H,
-    bottom: ((bottom - canvasRect.top) / canvasRect.height) * WORLD_H,
-  };
-}
-
-function getUiBlockedWorldRect(element, paddingCss = 10) {
-  if (!element || element.classList.contains("is-hidden")) return null;
-
-  const style = window.getComputedStyle(element);
-  if (style.display === "none" || style.visibility === "hidden") {
-    return null;
-  }
-
-  const elementRect = element.getBoundingClientRect();
-  return viewportBoxToWorldRect(elementRect, paddingCss);
-}
-
-function getCssPixelValue(element, property, fallback) {
-  if (!element) return fallback;
-  const value = window.getComputedStyle(element).getPropertyValue(property);
-  const parsed = Number.parseFloat(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function getRightAnchoredYoutubeRect(element, paddingCss = YOUTUBE_PANEL_BLOCK_PADDING_CSS) {
-  if (!element) return null;
-
-  const stageRect = canvas.parentElement?.getBoundingClientRect() || canvas.getBoundingClientRect();
-  const width = element.offsetWidth || element.getBoundingClientRect().width;
-  const height = element.offsetHeight || element.getBoundingClientRect().height;
-  if (!stageRect.width || !stageRect.height || !width || !height) return null;
-
-  const edge = getCssPixelValue(element, "--youtube-edge-offset", window.matchMedia("(max-width: 720px)").matches ? 8 : 12);
-  return viewportBoxToWorldRect({
-    left: stageRect.right - edge - width,
-    right: stageRect.right - edge,
-    top: stageRect.bottom - edge - height,
-    bottom: stageRect.bottom - edge,
-  }, paddingCss);
-}
-
-function shouldCenterYoutubePanel() {
-  if (!youtubeAudioPanelEl || bedSlots.length === 0) return false;
-
-  const rightAnchoredRect = getRightAnchoredYoutubeRect(youtubeAudioPanelEl);
-  if (!rightAnchoredRect) return false;
-
-  return bedSlots.every((slot) => slot.y + 8 < rightAnchoredRect.top);
-}
-
-function updateYoutubePanelPlacement() {
-  const centered = shouldCenterYoutubePanel();
-  youtubeAudioPanelEl?.classList.toggle("is-centered", centered);
-  youtubeShowBtn?.classList.remove("is-centered");
+function getLayoutAdjustedDistanceSq(dx, dy) {
+  const adjustedX = dx / Math.max(0.1, fieldLayoutScaleX);
+  const adjustedY = dy / Math.max(0.1, fieldLayoutScaleY);
+  return (adjustedX * adjustedX) + (adjustedY * adjustedY);
 }
 
 function getFlowerBlockedRects() {
-  return [
-    getUiBlockedWorldRect(youtubeShowBtn, YOUTUBE_SHOW_BLOCK_PADDING_CSS),
-  ].filter(Boolean);
+  return [];
+}
+
+function syncViewportCssVars() {
+  const viewport = window.visualViewport;
+  const width = Math.max(1, Math.round(viewport?.width || window.innerWidth || 1));
+  const height = Math.max(1, Math.round(viewport?.height || window.innerHeight || 1));
+  document.documentElement.style.setProperty("--app-width", `${width}px`);
+  document.documentElement.style.setProperty("--app-height", `${height}px`);
 }
 
 function isSlotBlockedByUi(slot, blockedRects = getFlowerBlockedRects()) {
@@ -381,6 +358,7 @@ function syncBudsToSlots() {
 }
 
 function resizeGameSurface() {
+  syncViewportCssVars();
   const rect = canvas.getBoundingClientRect();
   const cssW = Math.max(1, rect.width || window.innerWidth || 1);
   const cssH = Math.max(1, rect.height || window.innerHeight || 1);
@@ -399,8 +377,8 @@ function resizeGameSurface() {
     targetViewH = Math.max(1, Math.round(cssH * dpr));
   }
 
-  const targetWorldW = clamp(Math.round(cssW * worldUnitsPerCss), 120, 360);
-  const targetWorldH = clamp(Math.round(cssH * worldUnitsPerCss), 120, 360);
+  const targetWorldW = Math.max(120, Math.round(cssW * worldUnitsPerCss));
+  const targetWorldH = Math.max(120, Math.round(cssH * worldUnitsPerCss));
 
   const viewChanged = targetViewW !== VIEW_W || targetViewH !== VIEW_H;
   const worldChanged = targetWorldW !== WORLD_W || targetWorldH !== WORLD_H;
@@ -419,7 +397,6 @@ function resizeGameSurface() {
   wctx.imageSmoothingEnabled = false;
 
   rebuildBedSlots();
-  updateYoutubePanelPlacement();
   syncBudsToSlots();
   state.pointerX = clamp(state.pointerX, 0, WORLD_W);
   state.pointerY = clamp(state.pointerY, 0, WORLD_H);
@@ -434,13 +411,15 @@ const state = {
   running: false,
   time: 0,
   score: 0,
+  committedScore: 0,
   hype: 72,
   harvestProgress: 0,
   harvestGoal: 12,
   crates: 0,
+  committedCrates: 0,
   combo: 0,
   bestCombo: 0,
-  nextPalette: 0,
+  nextPalette: STARTING_PALETTE,
   frenzyTimer: 0,
   spawnTimer: 0,
   seasonTimer: rand(10, 15),
@@ -541,6 +520,46 @@ function writeBackdropUnlocks(unlocks) {
   }
 }
 
+function readTemporaryBackdropAccess() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(TEMP_BACKDROP_ACCESS_STORAGE_KEY) || "{}");
+    return Object.fromEntries(
+      Object.entries(parsed)
+        .filter(([backdrop, expiresAt]) => BACKDROP_IDS.includes(backdrop) && Number(expiresAt) > Date.now()),
+    );
+  } catch {
+    return {};
+  }
+}
+
+function writeTemporaryBackdropAccess(access) {
+  try {
+    localStorage.setItem(TEMP_BACKDROP_ACCESS_STORAGE_KEY, JSON.stringify(access));
+  } catch {
+    // Ignore storage write failures.
+  }
+}
+
+function getTemporaryBackdropExpiresAt(backdrop) {
+  const expiresAt = Number(temporaryBackdropAccess[backdrop]) || 0;
+  return expiresAt > Date.now() ? expiresAt : 0;
+}
+
+function hasTemporaryBackdropAccess(backdrop) {
+  return getTemporaryBackdropExpiresAt(backdrop) > 0;
+}
+
+function grantTemporaryBackdropAccess(backdrop, hours = REWARDED_BACKDROP_ACCESS_HOURS) {
+  if (!BACKDROP_IDS.includes(backdrop) || backdrop === "classic") return;
+  temporaryBackdropAccess = {
+    ...readTemporaryBackdropAccess(),
+    [backdrop]: Date.now() + hours * 60 * 60 * 1000,
+  };
+  writeTemporaryBackdropAccess(temporaryBackdropAccess);
+  selectBackdrop(backdrop);
+  showBackgroundPreview(backdrop);
+}
+
 function writeBackdropPreference(backdrop) {
   try {
     localStorage.setItem(BACKDROP_STORAGE_KEY, backdrop);
@@ -565,19 +584,75 @@ function syncColorControls() {
   colorBackdropBtn?.classList.toggle("is-hidden", !isActive);
 }
 
+function getDailyDealDateKey(date = new Date()) {
+  return date.toISOString().slice(0, 10);
+}
+
+function pickDailyDealBackdrop(dateKey = getDailyDealDateKey()) {
+  const candidates = BACKDROP_IDS.filter((backdrop) => (
+    backdrop !== "classic" && BACKDROP_PRODUCT_IDS[backdrop]
+  ));
+  if (candidates.length === 0) return "";
+
+  let hash = 0;
+  for (let i = 0; i < dateKey.length; i += 1) {
+    hash = ((hash * 31) + dateKey.charCodeAt(i)) >>> 0;
+  }
+  return candidates[hash % candidates.length] || "";
+}
+
+function getDailyDealBackdrop() {
+  try {
+    const dateKey = getDailyDealDateKey();
+    const parsed = JSON.parse(localStorage.getItem(DAILY_DEAL_STORAGE_KEY) || "{}");
+    if (parsed?.dateKey === dateKey && BACKDROP_IDS.includes(parsed.backdrop)) {
+      return parsed.backdrop;
+    }
+
+    const backdrop = pickDailyDealBackdrop(dateKey);
+    localStorage.setItem(DAILY_DEAL_STORAGE_KEY, JSON.stringify({ dateKey, backdrop }));
+    return backdrop;
+  } catch {
+    return pickDailyDealBackdrop();
+  }
+}
+
+function isDailyDealBackdrop(backdrop) {
+  return backdrop === getDailyDealBackdrop();
+}
+
+function getBackdropPriceLabel(backdrop) {
+  if (isDailyDealBackdrop(backdrop) && !isBackdropUnlocked(backdrop)) return DAILY_DEAL_PRICE_LABEL;
+  const productID = BACKDROP_PRODUCT_IDS[backdrop];
+  return (productID && nativeProductPrices[productID]) || BACKDROP_PRICE_LABELS[backdrop] || "$0.99";
+}
+
+function getLifetimePriceLabel() {
+  return nativeProductPrices[LIFETIME_PRODUCT_ID] || "$4.99";
+}
+
 function syncBackdropTiles() {
   const previewBackdrop = selectedLockedBackdrop || state.backdrop;
+  temporaryBackdropAccess = readTemporaryBackdropAccess();
   for (const tile of backgroundTileEls) {
     const backdrop = tile.dataset.backdrop;
+    if (!BACKDROP_IDS.includes(backdrop)) continue;
     const selected = backdrop === previewBackdrop;
     const free = isBackdropFree(backdrop);
     const unlocked = isBackdropUnlocked(backdrop);
+    const tempAccess = hasTemporaryBackdropAccess(backdrop);
+    const usable = unlocked || tempAccess;
+    const dailyDeal = isDailyDealBackdrop(backdrop) && !unlocked;
     tile.classList.toggle("is-selected", selected);
     tile.classList.toggle("is-free", free);
-    tile.classList.toggle("is-locked", !unlocked);
+    tile.classList.toggle("is-locked", !usable);
+    tile.classList.toggle("has-temp-access", tempAccess && !unlocked);
+    tile.classList.toggle("is-daily-deal", dailyDeal);
     tile.setAttribute("aria-pressed", selected ? "true" : "false");
-    tile.setAttribute("aria-label", `${BACKDROP_DISPLAY_NAMES[backdrop] || "Background"} ${unlocked ? "unlocked" : "locked"}`);
-    tile.dataset.price = getBackdropBadge(backdrop, unlocked);
+    tile.setAttribute("aria-label", `${BACKDROP_DISPLAY_NAMES[backdrop] || "Background"} ${usable ? "available" : "locked"}`);
+    tile.dataset.price = getBackdropBadge(backdrop, unlocked, tempAccess);
+    tile.dataset.deal = dailyDeal ? "Deal" : "";
+    tile.querySelector("span")?.setAttribute("data-deal", dailyDeal ? "Deal" : "");
   }
 
   if (unlockBackgroundsBtn) {
@@ -587,32 +662,29 @@ function syncBackdropTiles() {
   }
 
   if (unlockLifetimeBtn) {
-    unlockLifetimeBtn.textContent = "Lifetime Pass $4.99";
+    if (lifetimePriceEl) {
+      lifetimePriceEl.textContent = getLifetimePriceLabel();
+    } else {
+      unlockLifetimeBtn.textContent = `Lifetime Pass ${getLifetimePriceLabel()} (best value)`;
+    }
     unlockLifetimeBtn.disabled = backdropUnlocks.lifetime;
     unlockLifetimeBtn.classList.toggle("is-hidden", backdropUnlocks.lifetime);
+  }
+
+  if (restorePurchasesBtn) {
+    restorePurchasesBtn.classList.toggle("is-hidden", !hasNativePurchaseBridge() || backdropUnlocks.lifetime);
   }
 
   if (fundingNoteEl) {
     fundingNoteEl.textContent = backdropUnlocks.lifetime ? FUNDING_NOTE_LIFETIME_ACTIVE : FUNDING_NOTE_DEFAULT;
   }
 
-  if (lifetimeValueEl) {
-    lifetimeValueEl.classList.toggle("is-active", backdropUnlocks.lifetime);
-  }
-  if (lifetimeValueKickerEl) {
-    lifetimeValueKickerEl.textContent = backdropUnlocks.lifetime ? "Lifetime active" : "Best value";
-  }
-  if (lifetimeValueTextEl) {
-    lifetimeValueTextEl.textContent = backdropUnlocks.lifetime
-      ? "Every current background is unlocked, and future maps are included."
-      : "Lifetime Pass unlocks every current background plus every future map.";
-  }
   syncColorControls();
 }
 
 function selectBackdrop(backdrop) {
   if (!BACKDROP_IDS.includes(backdrop)) return;
-  if (!isBackdropUnlocked(backdrop)) {
+  if (!isBackdropUsable(backdrop)) {
     selectedLockedBackdrop = backdrop;
     syncBackdropTiles();
     return;
@@ -623,9 +695,9 @@ function selectBackdrop(backdrop) {
   syncBackdropTiles();
 }
 
-function renderBackgroundPreview(backdrop) {
-  if (!backgroundPreviewCanvas) return;
-  const previewCtx = backgroundPreviewCanvas.getContext("2d");
+function renderBackdropToCanvas(targetCanvas, backdrop) {
+  if (!targetCanvas) return;
+  const previewCtx = targetCanvas.getContext("2d");
   if (!previewCtx) return;
 
   const previousCtx = wctx;
@@ -634,59 +706,92 @@ function renderBackgroundPreview(backdrop) {
   const previousBackdrop = state.backdrop;
   const previousTime = state.time;
 
-  WORLD_W = BASE_WORLD_W;
-  WORLD_H = BASE_WORLD_H;
-  state.backdrop = backdrop;
-  state.time = Math.max(previousTime, performance.now() / 1000);
-  wctx = previewCtx;
-  previewCtx.imageSmoothingEnabled = false;
-  previewCtx.clearRect(0, 0, backgroundPreviewCanvas.width, backgroundPreviewCanvas.height);
-  drawBackground();
-  drawBackdropActors();
+  try {
+    WORLD_W = BASE_WORLD_W;
+    WORLD_H = BASE_WORLD_H;
+    state.backdrop = backdrop;
+    state.time = Math.max(previousTime, performance.now() / 1000);
+    wctx = previewCtx;
+    previewCtx.imageSmoothingEnabled = false;
+    previewCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+    drawBackground();
+    drawBackdropActors();
+  } catch (error) {
+    console.warn("[Bloomwave] Background preview failed", error);
+  } finally {
+    wctx = previousCtx;
+    WORLD_W = previousWorldW;
+    WORLD_H = previousWorldH;
+    state.backdrop = previousBackdrop;
+    state.time = previousTime;
+  }
+}
 
-  wctx = previousCtx;
-  WORLD_W = previousWorldW;
-  WORLD_H = previousWorldH;
-  state.backdrop = previousBackdrop;
-  state.time = previousTime;
+function renderBackgroundPreview(backdrop) {
+  renderBackdropToCanvas(backgroundPreviewCanvas, backdrop);
 }
 
 function getBackdropUnlockLine(backdrop, unlocked, stats = getTemporaryUsageStats()) {
   if (unlocked) return "Unlocked";
   const progress = getBackdropUnlockProgress(backdrop, stats);
-  return `Unlocks at ${formatLargeNumber(progress.targetBlooms)} Blooms`;
+  if (progress.targetBlooms <= 0) return "Premium Background";
+  return "";
 }
 
 function showBackgroundPreview(backdrop) {
   if (!BACKDROP_IDS.includes(backdrop) || !backgroundPreviewModalEl) return;
-  selectedLockedBackdrop = isBackdropUnlocked(backdrop) ? null : backdrop;
+  temporaryBackdropAccess = readTemporaryBackdropAccess();
+  const tempAccess = hasTemporaryBackdropAccess(backdrop);
+  const usable = isBackdropUsable(backdrop);
+  selectedLockedBackdrop = usable ? null : backdrop;
   const stats = getTemporaryUsageStats();
   const unlocked = isBackdropUnlocked(backdrop);
   const name = BACKDROP_DISPLAY_NAMES[backdrop] || "Background";
-  const price = BACKDROP_PRICE_LABELS[backdrop] || "$0.99";
+  const price = getBackdropPriceLabel(backdrop);
   const progress = getBackdropUnlockProgress(backdrop, stats);
+  const hasBloomUnlock = progress.targetBlooms > 0;
   const remainingBlooms = Math.max(0, Math.ceil(progress.targetBlooms - stats.totalBlooms));
 
   if (backgroundPreviewTitleEl) backgroundPreviewTitleEl.textContent = name;
   if (backgroundPreviewUseBtn) {
-    backgroundPreviewUseBtn.textContent = unlocked ? "Use Background" : getBackdropUnlockLine(backdrop, false, stats);
-    backgroundPreviewUseBtn.disabled = !unlocked;
+    backgroundPreviewUseBtn.textContent = "Use Background";
+    backgroundPreviewUseBtn.disabled = !usable;
+    backgroundPreviewUseBtn.classList.toggle("is-hidden", !usable);
     backgroundPreviewUseBtn.dataset.backdrop = backdrop;
   }
   if (backgroundPreviewBloomsEl) {
-    backgroundPreviewBloomsEl.textContent = `You have ${formatLargeNumber(stats.totalBlooms)} Blooms`;
+    backgroundPreviewBloomsEl.textContent = hasBloomUnlock
+      ? `You have ${formatLargeNumber(stats.totalBlooms)} Blooms`
+      : `Purchase forever, or watch an ad to equip for ${REWARDED_BACKDROP_ACCESS_HOURS}h.`;
   }
   if (backgroundPreviewProgressFillEl) {
-    backgroundPreviewProgressFillEl.style.width = `${Math.round(progress.progress * 100)}%`;
+    backgroundPreviewProgressFillEl.style.width = formatUnlockProgressWidth(progress.progress);
+  }
+  if (backgroundPreviewProgressEl) {
+    backgroundPreviewProgressEl.classList.toggle("is-hidden", !hasBloomUnlock);
   }
   if (backgroundPreviewRemainingEl) {
+    const tempExpiresAt = getTemporaryBackdropExpiresAt(backdrop);
     backgroundPreviewRemainingEl.textContent = unlocked
       ? "Unlocked"
-      : `${formatLargeNumber(remainingBlooms)} Blooms left`;
+      : tempAccess && tempExpiresAt
+        ? `Equipped for ${formatTemporaryAccessRemaining(tempExpiresAt)}`
+        : hasBloomUnlock
+          ? `${formatLargeNumber(remainingBlooms)} Blooms left`
+          : `Unlock forever ${price}`;
+  }
+  if (backgroundPreviewAdBtn) {
+    const canWatchAd = backdrop !== "classic" && !unlocked && !tempAccess;
+    backgroundPreviewAdBtn.textContent = tempAccess && !unlocked
+      ? `Equipped ${formatTemporaryAccessRemaining(getTemporaryBackdropExpiresAt(backdrop))}`
+      : `Watch Ad: Equip ${REWARDED_BACKDROP_ACCESS_HOURS}h`;
+    backgroundPreviewAdBtn.disabled = !canWatchAd;
+    backgroundPreviewAdBtn.classList.toggle("is-hidden", backdrop === "classic" || unlocked);
+    backgroundPreviewAdBtn.dataset.backdrop = canWatchAd ? backdrop : "";
   }
   if (backgroundPreviewPurchaseBtn) {
     const canPurchase = backdrop !== "classic" && Boolean(BACKDROP_PRICE_LABELS[backdrop]) && !unlocked;
-    backgroundPreviewPurchaseBtn.textContent = `Purchase for ${price}`;
+    backgroundPreviewPurchaseBtn.textContent = `Unlock Forever ${price}`;
     backgroundPreviewPurchaseBtn.disabled = !canPurchase;
     backgroundPreviewPurchaseBtn.classList.toggle("is-hidden", !canPurchase);
     backgroundPreviewPurchaseBtn.dataset.backdrop = canPurchase ? backdrop : "";
@@ -793,6 +898,14 @@ function sortLeaderboard(entries) {
   });
 }
 
+function hasNativeGameCenterBridge() {
+  return Boolean(window.webkit?.messageHandlers?.nativeGameCenter);
+}
+
+function shouldUseDemoLeaderboardRows() {
+  return !hasNativeGameCenterBridge();
+}
+
 function readLegacyRunSummary(profile) {
   try {
     const raw = localStorage.getItem(LEGACY_LEADERBOARD_STORAGE_KEY);
@@ -842,8 +955,9 @@ function seedCommunityPlayers(entries) {
   }
 }
 
-function readLeaderboard(profile) {
+function readLeaderboard(profile, options = {}) {
   try {
+    const includeDemoRows = options.includeDemoRows ?? shouldUseDemoLeaderboardRows();
     const raw = localStorage.getItem(LEADERBOARD_STORAGE_KEY);
     let parsedEntries = [];
     if (raw) {
@@ -860,13 +974,19 @@ function readLeaderboard(profile) {
       }
     }
 
-    seedCommunityPlayers(parsedEntries);
+    if (includeDemoRows) {
+      seedCommunityPlayers(parsedEntries);
+    } else {
+      parsedEntries = parsedEntries.filter((entry) => !entry.isNpc);
+    }
     ensurePlayerEntry(parsedEntries, profile);
     sortLeaderboard(parsedEntries);
     return parsedEntries;
   } catch {
     const fallback = [];
-    seedCommunityPlayers(fallback);
+    if (options.includeDemoRows ?? shouldUseDemoLeaderboardRows()) {
+      seedCommunityPlayers(fallback);
+    }
     ensurePlayerEntry(fallback, profile);
     sortLeaderboard(fallback);
     return fallback;
@@ -881,6 +1001,75 @@ function writeLeaderboard(entries) {
   }
 }
 
+function normalizePlayerTotals(totals = {}) {
+  return {
+    blooms: Math.max(0, Math.floor(Number(totals.blooms ?? totals.totalBlooms) || 0)),
+    crates: Math.max(0, Math.floor(Number(totals.crates ?? totals.totalCrates) || 0)),
+  };
+}
+
+function readPlayerTotals() {
+  try {
+    return normalizePlayerTotals(JSON.parse(localStorage.getItem(PLAYER_TOTALS_STORAGE_KEY) || "{}"));
+  } catch {
+    return { blooms: 0, crates: 0 };
+  }
+}
+
+function writePlayerTotals(totals) {
+  try {
+    localStorage.setItem(PLAYER_TOTALS_STORAGE_KEY, JSON.stringify(normalizePlayerTotals(totals)));
+  } catch {
+    // Ignore storage write failures (private mode / quota / blocked storage).
+  }
+}
+
+function getUncommittedSessionProgress() {
+  return {
+    blooms: Math.max(0, Math.floor(state.score) - Math.max(0, Math.floor(state.committedScore) || 0)),
+    crates: Math.max(0, Math.floor(state.crates) - Math.max(0, Math.floor(state.committedCrates) || 0)),
+  };
+}
+
+function getDisplayedAccountProgress() {
+  const progress = getUncommittedSessionProgress();
+  return {
+    blooms: playerTotals.blooms + progress.blooms,
+    crates: playerTotals.crates + progress.crates,
+  };
+}
+
+function mergePlayerTotals(nextTotals) {
+  const normalized = normalizePlayerTotals(nextTotals);
+  const merged = {
+    blooms: Math.max(playerTotals.blooms, normalized.blooms),
+    crates: Math.max(playerTotals.crates, normalized.crates),
+  };
+  if (merged.blooms === playerTotals.blooms && merged.crates === playerTotals.crates) return false;
+  playerTotals = merged;
+  writePlayerTotals(playerTotals);
+  syncHud();
+  return true;
+}
+
+function syncPlayerTotalsFromLocalLeaderboard(entries = leaderboardEntries) {
+  const localEntry = entries.find((entry) => entry.id === localPlayerProfile.id);
+  if (!localEntry) return false;
+  return mergePlayerTotals({
+    blooms: localEntry.totalBlooms,
+    crates: localEntry.totalCrates,
+  });
+}
+
+function maybeSubmitStoredTotalsToNative(nativeBlooms = 0) {
+  if (!hasNativeGameCenterBridge()) return;
+  if (playerTotals.blooms <= 0 || playerTotals.blooms <= nativeBlooms) return;
+  postNativeGameCenter("submitScore", {
+    score: playerTotals.blooms,
+    crates: playerTotals.crates,
+  });
+}
+
 const localPlayerProfile = readPlayerProfile();
 let leaderboardEntries = readLeaderboard(localPlayerProfile);
 let selectedScoreboardEntryId = localPlayerProfile.id;
@@ -888,10 +1077,22 @@ let leaderboardSearchQuery = "";
 let usingNativeLeaderboard = false;
 let nativeLeaderboardRequested = false;
 let nativeLocalPlayerID = "";
+let nativeLocalPlayerName = "";
+let nativeProductsRequested = false;
+let nativeEntitlementsRequested = false;
+let nativeProductPrices = {};
+let pendingPurchaseProductID = "";
+let pendingRewardedBackdrop = "";
+let playerTotals = readPlayerTotals();
+let shareResumeGuardUntilMs = 0;
 let backdropUnlocks = readBackdropUnlocks();
+let temporaryBackdropAccess = readTemporaryBackdropAccess();
 let selectedLockedBackdrop = null;
 let activeUsageSessionStartedAtMs = null;
 let activeUsageSessionId = null;
+let lastLeaderboardAutoSaveAtMs = 0;
+let lastLeaderboardAutoSaveBlooms = 0;
+syncPlayerTotalsFromLocalLeaderboard(leaderboardEntries);
 
 function readTemporaryUsageLog() {
   try {
@@ -961,7 +1162,8 @@ function finishActiveSession(reason = "session-end") {
   const hadActiveUsageSession = Boolean(activeUsageSessionStartedAtMs);
   recordTemporaryUsageSession(reason);
   syncBackdropTiles();
-  if (hadActiveUsageSession && (state.score > 0 || state.crates > 0)) {
+  const progress = getUncommittedSessionProgress();
+  if (hadActiveUsageSession && (progress.blooms > 0 || progress.crates > 0)) {
     recordSessionToLeaderboard();
   }
 }
@@ -983,6 +1185,10 @@ function getTemporaryUsageStats() {
     totalBlooms += Math.max(0, Math.floor(state.score));
     totalCrates += Math.max(0, Math.floor(state.crates));
   }
+
+  const displayedProgress = getDisplayedAccountProgress();
+  totalBlooms = Math.max(totalBlooms, displayedProgress.blooms);
+  totalCrates = Math.max(totalCrates, displayedProgress.crates);
 
   const hasMeasuredRate = totalDurationSec >= 60 && totalBlooms > 0;
   const bloomsPerMinute = hasMeasuredRate
@@ -1008,13 +1214,14 @@ function getBackdropUnlockProgress(backdrop, stats = getTemporaryUsageStats()) {
   const targetHours = targetBlooms > 0 ? targetBlooms / BACKDROP_UNLOCK_BLOOMS_PER_MINUTE / 60 : 0;
   const targetDurationSec = targetHours * 60 * 60;
   const progress = targetBlooms > 0 ? clamp(stats.totalBlooms / targetBlooms, 0, 1) : 1;
+  const hasFarmingUnlock = targetBlooms > 0 || BASE_UNLOCKED_BACKDROP_IDS.includes(backdrop);
 
   return {
     targetHours,
     targetDurationSec,
     targetBlooms,
     progress,
-    unlockedByFarming: targetBlooms <= 0 || stats.totalBlooms >= targetBlooms,
+    unlockedByFarming: hasFarmingUnlock && (targetBlooms <= 0 || stats.totalBlooms >= targetBlooms),
   };
 }
 
@@ -1025,8 +1232,39 @@ function formatUnlockTime(hours) {
   return Number.isInteger(days) ? `${days} days` : `${Math.round(days * 10) / 10} days`;
 }
 
+function formatTemporaryAccessRemaining(expiresAt) {
+  const remainingMs = Math.max(0, expiresAt - Date.now());
+  const remainingHours = Math.ceil(remainingMs / (60 * 60 * 1000));
+  if (remainingHours <= 1) return "<1h";
+  if (remainingHours < 24) return `${remainingHours}h`;
+  return `${Math.ceil(remainingHours / 24)}d`;
+}
+
+function getDisplayUnlockProgress(progress) {
+  if (progress <= 0) return 0;
+  if (progress >= 1) return 1;
+  return Math.max(progress, MIN_UNLOCK_PROGRESS_DISPLAY);
+}
+
+function formatUnlockProgressWidth(progress) {
+  return `${Math.round(getDisplayUnlockProgress(progress) * 100)}%`;
+}
+
 function formatLargeNumber(value) {
   return Math.max(0, Math.round(value)).toLocaleString();
+}
+
+function formatCompactNumber(value) {
+  const rounded = Math.max(0, Math.round(value));
+  if (rounded >= 1000000) {
+    const millions = rounded / 1000000;
+    return `${Number.isInteger(millions) ? millions : Math.round(millions * 10) / 10}M`;
+  }
+  if (rounded >= 1000) {
+    const thousands = rounded / 1000;
+    return `${Number.isInteger(thousands) ? thousands : Math.round(thousands * 10) / 10}K`;
+  }
+  return `${rounded}`;
 }
 
 function formatShortBloomTarget(value) {
@@ -1065,35 +1303,46 @@ function getNextBackdropUnlockCandidate(stats = getTemporaryUsageStats()) {
   return candidates[0] || null;
 }
 
-function getBackdropBadge(backdrop, unlocked) {
+function getBackdropBadge(backdrop, unlocked, tempAccess = false) {
   if (backdropUnlocks.lifetime) return "";
   if (BASE_UNLOCKED_BACKDROP_IDS.includes(backdrop)) return "BASE";
   if (unlocked) return "";
+  if (tempAccess) return "24H";
   if (isBackdropFree(backdrop)) return formatShortBloomTarget(getBackdropUnlockProgress(backdrop).targetBlooms);
-  return BACKDROP_PRICE_LABELS[backdrop] || "$0.99";
+  return getBackdropPriceLabel(backdrop);
 }
 
 function syncPostRunUnlockPrompt() {
   if (!postRunUnlockPromptEl || !postRunUnlockTextEl) return;
-  const sessionBlooms = Math.max(0, Math.floor(state.score));
+  const displayedBlooms = Math.max(0, Math.floor(getDisplayedAccountProgress().blooms));
   const stats = getTemporaryUsageStats();
   const candidate = getNextBackdropUnlockCandidate(stats);
 
-  if (sessionBlooms <= 0 || !candidate) {
+  if (displayedBlooms <= 0 || !candidate) {
     postRunUnlockPromptEl.classList.add("screen-hidden");
     if (postRunUnlockBtn) postRunUnlockBtn.dataset.backdrop = "";
+    if (postRunUnlockPriceEl) postRunUnlockPriceEl.textContent = "";
+    if (postRunUnlockProgressFillEl) postRunUnlockProgressFillEl.style.width = "0%";
     return;
   }
 
   const name = BACKDROP_DISPLAY_NAMES[candidate.backdrop] || "a background";
-  postRunUnlockTextEl.textContent = `You earned ${formatLargeNumber(sessionBlooms)} Blooms. ${name} is ${formatLargeNumber(candidate.remainingBlooms)} Blooms away.`;
+  const price = getBackdropPriceLabel(candidate.backdrop);
+  postRunUnlockTextEl.textContent = `${name}: ${formatLargeNumber(displayedBlooms)} / ${formatCompactNumber(candidate.progress.targetBlooms)} Blooms`;
   if (postRunUnlockBtn) postRunUnlockBtn.dataset.backdrop = candidate.backdrop;
+  if (postRunUnlockPriceEl) postRunUnlockPriceEl.textContent = `Try now free for ${REWARDED_BACKDROP_ACCESS_HOURS}h`;
+  if (postRunUnlockProgressFillEl) {
+    postRunUnlockProgressFillEl.style.width = formatUnlockProgressWidth(candidate.progress.progress);
+  }
   postRunUnlockPromptEl.classList.remove("screen-hidden");
 }
 
 function buildBackdropSelectionText(backdrop, unlocked, stats = getTemporaryUsageStats()) {
   const name = BACKDROP_DISPLAY_NAMES[backdrop] || "Selected";
   const progress = getBackdropUnlockProgress(backdrop, stats);
+  if (progress.targetBlooms <= 0 && !unlocked) {
+    return `${name} preview. Unlock forever, or watch an ad to equip for ${REWARDED_BACKDROP_ACCESS_HOURS}h.`;
+  }
   const targetText = progress.targetHours > 0
     ? `about ${formatUnlockTime(progress.targetHours)} of farming (${formatLargeNumber(progress.targetBlooms)} Blooms at ${formatLargeNumber(BACKDROP_UNLOCK_BLOOMS_PER_MINUTE)} Blooms/min)`
     : "immediately";
@@ -1125,6 +1374,10 @@ function isBackdropUnlocked(backdrop) {
     || getBackdropUnlockProgress(backdrop).unlockedByFarming;
 }
 
+function isBackdropUsable(backdrop) {
+  return isBackdropUnlocked(backdrop) || hasTemporaryBackdropAccess(backdrop);
+}
+
 function unlockBackdrop(backdrop) {
   if (!BACKDROP_PRICE_LABELS[backdrop]) return;
   if (!backdropUnlocks.unlocked.includes(backdrop)) {
@@ -1142,6 +1395,8 @@ function unlockLifetimeBackgrounds() {
 }
 
 function nudgeCommunityPlayers(entries = leaderboardEntries) {
+  if (!shouldUseDemoLeaderboardRows()) return;
+
   for (const entry of entries) {
     if (!entry.isNpc) continue;
     if (entry.isShowcase) continue;
@@ -1154,16 +1409,27 @@ function nudgeCommunityPlayers(entries = leaderboardEntries) {
   }
 }
 
-function recordSessionToLeaderboard() {
-  const blooms = Math.max(0, Math.floor(state.score));
-  const crates = Math.max(0, Math.floor(state.crates));
+function recordSessionToLeaderboard(options = {}) {
+  const refreshNative = options.refreshNative ?? true;
+  const progress = getUncommittedSessionProgress();
+  const blooms = progress.blooms;
+  const crates = progress.crates;
   if (blooms <= 0 && crates <= 0) return;
 
-  const localEntries = readLeaderboard(localPlayerProfile);
+  const localEntries = readLeaderboard(localPlayerProfile, {
+    includeDemoRows: shouldUseDemoLeaderboardRows(),
+  });
   const localEntry = ensurePlayerEntry(localEntries, localPlayerProfile);
-  localEntry.totalBlooms += blooms;
-  localEntry.totalCrates += crates;
+  localEntry.totalBlooms = Math.max(localEntry.totalBlooms, playerTotals.blooms) + blooms;
+  localEntry.totalCrates = Math.max(localEntry.totalCrates, playerTotals.crates) + crates;
   localEntry.isNpc = false;
+  state.committedScore = Math.min(Math.max(0, Math.floor(state.score)), state.committedScore + blooms);
+  state.committedCrates = Math.min(Math.max(0, Math.floor(state.crates)), state.committedCrates + crates);
+  playerTotals = {
+    blooms: localEntry.totalBlooms,
+    crates: localEntry.totalCrates,
+  };
+  writePlayerTotals(playerTotals);
 
   nudgeCommunityPlayers(localEntries);
   sortLeaderboard(localEntries);
@@ -1172,10 +1438,26 @@ function recordSessionToLeaderboard() {
     leaderboardEntries = localEntries;
   }
   postNativeGameCenter("submitScore", { score: localEntry.totalBlooms, crates: localEntry.totalCrates });
-  if (usingNativeLeaderboard) {
+  if (usingNativeLeaderboard && refreshNative) {
     nativeLeaderboardRequested = false;
     requestNativeLeaderboard();
   }
+  syncHud();
+}
+
+function autosaveLeaderboardProgress(nowMs = performance.now()) {
+  if (!activeUsageSessionStartedAtMs) return;
+  const progress = getUncommittedSessionProgress();
+  if (progress.blooms <= 0 && progress.crates <= 0) return;
+
+  const bloomsSinceAutosave = Math.max(0, Math.floor(state.score) - lastLeaderboardAutoSaveBlooms);
+  const intervalReady = nowMs - lastLeaderboardAutoSaveAtMs >= LEADERBOARD_AUTOSAVE_INTERVAL_MS;
+  const bloomStepReady = bloomsSinceAutosave >= LEADERBOARD_AUTOSAVE_BLOOM_STEP;
+  if (!intervalReady && !bloomStepReady) return;
+
+  recordSessionToLeaderboard({ refreshNative: false });
+  lastLeaderboardAutoSaveAtMs = nowMs;
+  lastLeaderboardAutoSaveBlooms = Math.max(0, Math.floor(state.score));
 }
 
 function normalizeNativeLeaderboardEntry(entry) {
@@ -1194,24 +1476,39 @@ function normalizeNativeLeaderboardEntry(entry) {
 }
 
 function receiveNativeLeaderboard(payload = {}) {
+  nativeLeaderboardRequested = false;
   const nativeEntries = Array.isArray(payload.entries)
     ? payload.entries.map(normalizeNativeLeaderboardEntry).filter(Boolean)
     : [];
+  nativeLocalPlayerID = typeof payload.localPlayerID === "string" ? payload.localPlayerID : "";
+  nativeLocalPlayerName = typeof payload.localPlayerName === "string" ? payload.localPlayerName.trim() : nativeLocalPlayerName;
 
   if (nativeEntries.length === 0) {
-    nativeLeaderboardRequested = false;
+    usingNativeLeaderboard = hasNativeGameCenterBridge();
+    leaderboardEntries = readLeaderboard(localPlayerProfile, {
+      includeDemoRows: shouldUseDemoLeaderboardRows(),
+    });
+    syncPlayerTotalsFromLocalLeaderboard(leaderboardEntries);
+    maybeSubmitStoredTotalsToNative(0);
+    renderLeaderboard();
     return;
   }
 
   usingNativeLeaderboard = true;
   leaderboardEntries = nativeEntries;
-  nativeLocalPlayerID = typeof payload.localPlayerID === "string" ? payload.localPlayerID : "";
+  let nativeLocalBlooms = 0;
   if (nativeLocalPlayerID) {
     const localEntry = leaderboardEntries.find((entry) => entry.id === nativeLocalPlayerID);
     if (localEntry) {
       selectedScoreboardEntryId = localEntry.id;
+      nativeLocalBlooms = Math.max(0, Math.floor(localEntry.totalBlooms) || 0);
+      mergePlayerTotals({
+        blooms: localEntry.totalBlooms,
+        crates: localEntry.totalCrates,
+      });
     }
   }
+  maybeSubmitStoredTotalsToNative(nativeLocalBlooms);
   sortLeaderboard(leaderboardEntries);
   renderLeaderboard();
 }
@@ -1227,10 +1524,71 @@ function requestNativeLeaderboard() {
   });
 }
 
+function getCurrentSessionLeaderboardProgress() {
+  return getUncommittedSessionProgress();
+}
+
+function stripLocalMarker(name) {
+  return String(name || "").replace(/\s*\(you\)\s*$/i, "").trim();
+}
+
+function isPlaceholderLocalName(name) {
+  const normalized = stripLocalMarker(name).toLowerCase();
+  return !normalized || normalized === "you" || normalized === "grower";
+}
+
+function getLocalLeaderboardName(entry) {
+  const entryName = stripLocalMarker(entry?.name);
+  if (!isPlaceholderLocalName(entryName)) return entryName;
+
+  const nativeName = stripLocalMarker(nativeLocalPlayerName);
+  if (!isPlaceholderLocalName(nativeName)) return nativeName;
+
+  const profileName = stripLocalMarker(localPlayerProfile.name);
+  if (!isPlaceholderLocalName(profileName)) return profileName;
+
+  return "Player";
+}
+
+function formatLeaderboardDisplayName(entry, isLocal) {
+  if (!isLocal) return stripLocalMarker(entry?.name) || "Grower";
+  return `${getLocalLeaderboardName(entry)} (You)`;
+}
+
+function buildDisplayLeaderboardEntries() {
+  const displayEntries = leaderboardEntries
+    .filter((entry) => shouldUseDemoLeaderboardRows() || !entry.isNpc)
+    .map((entry) => ({ ...entry }));
+  const localEntryID = nativeLocalPlayerID || localPlayerProfile.id;
+  let localEntry = displayEntries.find((entry) => entry.id === localEntryID)
+    || displayEntries.find((entry) => entry.id === localPlayerProfile.id);
+
+  if (!localEntry) {
+    localEntry = {
+      id: localEntryID,
+      name: localPlayerProfile.name,
+      totalBlooms: 0,
+      totalCrates: 0,
+      isNpc: false,
+      isNative: usingNativeLeaderboard,
+    };
+    displayEntries.push(localEntry);
+  }
+
+  localEntry.name = getLocalLeaderboardName(localEntry);
+  localEntry.isNpc = false;
+  const currentProgress = getCurrentSessionLeaderboardProgress();
+  localEntry.totalBlooms = Math.max(0, Math.floor(localEntry.totalBlooms) || 0, playerTotals.blooms) + currentProgress.blooms;
+  localEntry.totalCrates = Math.max(0, Math.floor(localEntry.totalCrates) || 0, playerTotals.crates) + currentProgress.crates;
+  sortLeaderboard(displayEntries);
+  return displayEntries;
+}
+
 function renderScoreVisualizer(entry, rank) {
   if (!scoreboardCrateGridEl) return;
 
   const fallbackEntry = {
+    id: nativeLocalPlayerID || localPlayerProfile.id,
     name: localPlayerProfile.name,
     totalBlooms: 0,
     totalCrates: 0,
@@ -1241,11 +1599,11 @@ function renderScoreVisualizer(entry, rank) {
 
   if (scoreboardRankEl) scoreboardRankEl.textContent = rank > 0 ? `#${rank}` : "#--";
   if (scoreboardNameEl) {
-    const displayName = selected.id === localPlayerProfile.id ? `${selected.name} (You)` : selected.name;
-    scoreboardNameEl.textContent = displayName;
+    const isLocal = selected.id === localPlayerProfile.id || selected.id === nativeLocalPlayerID;
+    scoreboardNameEl.textContent = formatLeaderboardDisplayName(selected, isLocal);
   }
-  if (scoreboardBloomsEl) scoreboardBloomsEl.textContent = String(blooms);
-  if (scoreboardCratesEl) scoreboardCratesEl.textContent = String(crates);
+  if (scoreboardBloomsEl) scoreboardBloomsEl.textContent = formatLargeNumber(blooms);
+  if (scoreboardCratesEl) scoreboardCratesEl.textContent = formatLargeNumber(crates);
 
   scoreboardCrateGridEl.innerHTML = "";
   const crateFragment = document.createDocumentFragment();
@@ -1261,23 +1619,24 @@ function renderLeaderboard() {
   if (!leaderboardListEl) return;
 
   leaderboardListEl.innerHTML = "";
-  const visibleEntries = [...leaderboardEntries];
+  const visibleEntries = buildDisplayLeaderboardEntries();
   sortLeaderboard(visibleEntries);
   const normalizedQuery = leaderboardSearchQuery.trim().toLowerCase();
   const matchingEntries = normalizedQuery
     ? visibleEntries.filter((entry) => entry.name.toLowerCase().includes(normalizedQuery))
     : visibleEntries;
   const topEntries = matchingEntries.slice(0, MAX_LEADERBOARD_ENTRIES);
-  const localRank = visibleEntries.findIndex((entry) => entry.id === localPlayerProfile.id);
+  const localEntryIds = new Set([localPlayerProfile.id, nativeLocalPlayerID].filter(Boolean));
+  const localRank = visibleEntries.findIndex((entry) => localEntryIds.has(entry.id));
   const selectedEntry = matchingEntries.find((entry) => entry.id === selectedScoreboardEntryId)
-    || matchingEntries.find((entry) => entry.id === localPlayerProfile.id)
+    || matchingEntries.find((entry) => localEntryIds.has(entry.id))
     || topEntries[0]
     || null;
   if (selectedEntry) selectedScoreboardEntryId = selectedEntry.id;
   const renderEntries = [...topEntries];
   const localMatchesSearch = localRank >= 0
     && (!normalizedQuery || visibleEntries[localRank].name.toLowerCase().includes(normalizedQuery));
-  if (localMatchesSearch && !renderEntries.some((entry) => entry.id === localPlayerProfile.id) && localRank >= MAX_LEADERBOARD_ENTRIES) {
+  if (localMatchesSearch && !renderEntries.some((entry) => localEntryIds.has(entry.id)) && localRank >= MAX_LEADERBOARD_ENTRIES) {
     renderEntries.push(visibleEntries[localRank]);
   }
 
@@ -1303,7 +1662,7 @@ function renderLeaderboard() {
     if (entry.id === selectedScoreboardEntryId) {
       item.classList.add("is-selected");
     }
-    const displayName = isLocal ? `${entry.name} (You)` : entry.name;
+    const displayName = formatLeaderboardDisplayName(entry, isLocal);
 
     const rankEl = document.createElement("span");
     rankEl.className = "rank";
@@ -1336,16 +1695,16 @@ function renderLeaderboard() {
     scoreValueEl.append(scoreNumberEl, scoreLabelEl);
 
     item.append(rankEl, playerEl, scoreValueEl);
-    item.addEventListener("click", () => {
+    item.addEventListener("click", safeUiAction("leaderboard row select", () => {
       selectedScoreboardEntryId = entry.id;
       renderLeaderboard();
-    });
-    item.addEventListener("keydown", (event) => {
+    }));
+    item.addEventListener("keydown", safeUiAction("leaderboard row keyboard select", (event) => {
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
       selectedScoreboardEntryId = entry.id;
       renderLeaderboard();
-    });
+    }));
     leaderboardListEl.appendChild(item);
   });
 
@@ -1356,11 +1715,12 @@ function renderLeaderboard() {
 }
 
 function getLocalLeaderboardEntry() {
-  if (usingNativeLeaderboard && nativeLocalPlayerID) {
-    const nativeLocalEntry = leaderboardEntries.find((entry) => entry.id === nativeLocalPlayerID);
+  const displayEntries = buildDisplayLeaderboardEntries();
+  if (nativeLocalPlayerID) {
+    const nativeLocalEntry = displayEntries.find((entry) => entry.id === nativeLocalPlayerID);
     if (nativeLocalEntry) return nativeLocalEntry;
   }
-  return ensurePlayerEntry(leaderboardEntries, localPlayerProfile);
+  return ensurePlayerEntry(displayEntries, localPlayerProfile);
 }
 
 function buildScoreShareText() {
@@ -1370,8 +1730,58 @@ function buildScoreShareText() {
   return `I just stacked ${blooms} Blooms and ${crates} Crates in Bloomwave Garden. Think you can beat me?`;
 }
 
+function postNativeShare(event, payload = {}) {
+  const handler = window.webkit && window.webkit.messageHandlers
+    ? window.webkit.messageHandlers.nativeShare
+    : null;
+
+  if (!handler) return false;
+
+  try {
+    handler.postMessage({
+      event,
+      ...payload,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function guardShareResume(ms = 900) {
+  shareResumeGuardUntilMs = Math.max(shareResumeGuardUntilMs, performance.now() + ms);
+}
+
+function isShareResumeGuardActive() {
+  return performance.now() < shareResumeGuardUntilMs;
+}
+
+function closestElement(target, selector) {
+  return target && typeof target.closest === "function" ? target.closest(selector) : null;
+}
+
+function safeUiAction(label, action) {
+  return function safeUiActionHandler(...args) {
+    try {
+      const result = action.apply(this, args);
+      if (result && typeof result.catch === "function") {
+        result.catch((error) => {
+          console.warn(`[Bloomwave] ${label} failed`, error);
+        });
+      }
+      return result;
+    } catch (error) {
+      console.warn(`[Bloomwave] ${label} failed`, error);
+      return undefined;
+    }
+  };
+}
+
 async function shareScore() {
   const text = buildScoreShareText();
+  guardShareResume(1400);
+  if (postNativeShare("sms", { text })) return;
+
   const shareData = {
     title: "Bloomwave Garden",
     text,
@@ -1386,7 +1796,13 @@ async function shareScore() {
     }
   }
 
-  window.location.href = `sms:&body=${encodeURIComponent(text)}`;
+  if (window.webkit?.messageHandlers) return;
+
+  try {
+    window.open(`sms:&body=${encodeURIComponent(text)}`, "_self");
+  } catch (error) {
+    console.warn("[Bloomwave] SMS share failed", error);
+  }
 }
 
 function showHomeScreen() {
@@ -1397,7 +1813,7 @@ function showHomeScreen() {
   leaderboardScreenEl?.classList.add("screen-hidden");
   premiumScreenEl?.classList.add("screen-hidden");
   setGameUiVisible(false);
-  overlayTitleEl.textContent = "Bloomwave Garden";
+  if (overlayTitleEl) overlayTitleEl.textContent = "Bloomwave Garden";
   syncPostRunUnlockPrompt();
   syncColorControls();
 }
@@ -1418,12 +1834,14 @@ function showLeaderboardScreen() {
 
 function showPremiumScreen() {
   if (!overlayEl) return;
+  requestNativeProducts();
   overlayEl.classList.remove("hidden");
   overlayEl.classList.add("menu-open");
   homeScreenEl?.classList.add("screen-hidden");
   leaderboardScreenEl?.classList.add("screen-hidden");
   premiumScreenEl?.classList.remove("screen-hidden");
   setGameUiVisible(false);
+  syncBackdropTiles();
   syncColorControls();
 }
 
@@ -1738,137 +2156,6 @@ class LofiEngine {
 const lofi = new LofiEngine();
 let didRunAudioUnlockPing = false;
 
-let youtubePlayer = null;
-let youtubePlayerReady = false;
-let youtubeScriptRequested = false;
-let youtubePanelVisible = true;
-let youtubeVideoIndex = 0;
-let youtubeStreamFailures = 0;
-
-function currentYoutubeVideoId() {
-  return YOUTUBE_AUDIO_VIDEO_IDS[youtubeVideoIndex] || YOUTUBE_AUDIO_VIDEO_IDS[0];
-}
-
-function setYoutubePanelVisible(visible) {
-  youtubePanelVisible = visible;
-  youtubeAudioPanelEl?.classList.toggle("is-hidden", !visible);
-  youtubeShowBtn?.classList.toggle("is-hidden", visible);
-  updateYoutubePanelPlacement();
-  syncBudsToSlots();
-  window.setTimeout(() => {
-    updateYoutubePanelPlacement();
-    syncBudsToSlots();
-  }, 260);
-  if (!visible) pauseYoutubeAudio();
-}
-
-function applyYoutubeMuteState() {
-  if (!youtubePlayerReady || !youtubePlayer) return;
-  youtubePlayer.unMute();
-  youtubePlayer.setVolume(42);
-}
-
-function playYoutubeAudio() {
-  if (!youtubePanelVisible) return;
-  if (!youtubePlayerReady || !youtubePlayer) return;
-  applyYoutubeMuteState();
-  try {
-    youtubePlayer.playVideo();
-  } catch {
-    // Browser autoplay policy or network failure can block playback.
-  }
-}
-
-function pauseYoutubeAudio() {
-  if (!youtubePlayerReady || !youtubePlayer) return;
-  try {
-    youtubePlayer.pauseVideo();
-  } catch {
-    // Ignore transient player API failures.
-  }
-}
-
-function advanceYoutubeStream() {
-  if (!youtubePlayerReady || !youtubePlayer || YOUTUBE_AUDIO_VIDEO_IDS.length <= 1) return;
-  if (youtubeStreamFailures >= YOUTUBE_AUDIO_VIDEO_IDS.length - 1) return;
-
-  youtubeStreamFailures += 1;
-  youtubeVideoIndex = (youtubeVideoIndex + 1) % YOUTUBE_AUDIO_VIDEO_IDS.length;
-  try {
-    youtubePlayer.loadVideoById(currentYoutubeVideoId());
-    applyYoutubeMuteState();
-  } catch {
-    // Ignore transient player API failures.
-  }
-}
-
-function createYoutubePlayer() {
-  if (!youtubePlayerEl || youtubePlayer || !window.YT || !window.YT.Player) return;
-
-  const playerVars = {
-    autoplay: 0,
-    controls: 1,
-    loop: 1,
-    playlist: currentYoutubeVideoId(),
-    playsinline: 1,
-    rel: 0,
-  };
-  if (window.location.origin && window.location.origin !== "null") {
-    playerVars.origin = window.location.origin;
-  }
-
-  youtubePlayer = new window.YT.Player(youtubePlayerEl, {
-    width: 200,
-    height: 200,
-    videoId: currentYoutubeVideoId(),
-    playerVars,
-    events: {
-      onReady: () => {
-        youtubePlayerReady = true;
-        applyYoutubeMuteState();
-        playYoutubeAudio();
-      },
-      onStateChange: (event) => {
-        if (event.data === window.YT.PlayerState.ENDED) {
-          advanceYoutubeStream();
-        } else if (event.data === window.YT.PlayerState.PLAYING) {
-          youtubeStreamFailures = 0;
-        }
-      },
-      onError: () => {
-        advanceYoutubeStream();
-      },
-    },
-  });
-}
-
-function ensureYoutubeAudio() {
-  if (!youtubePanelVisible) return;
-  if (!youtubePlayerEl) return;
-  if (youtubePlayerReady) {
-    playYoutubeAudio();
-    return;
-  }
-
-  if (window.YT && window.YT.Player) {
-    createYoutubePlayer();
-    return;
-  }
-
-  if (youtubeScriptRequested) return;
-  youtubeScriptRequested = true;
-  const previousReady = window.onYouTubeIframeAPIReady;
-  window.onYouTubeIframeAPIReady = () => {
-    if (typeof previousReady === "function") previousReady();
-    createYoutubePlayer();
-  };
-
-  const script = document.createElement("script");
-  script.src = "https://www.youtube.com/iframe_api";
-  script.async = true;
-  document.head.appendChild(script);
-}
-
 function postNativeAudio(event, payload = {}) {
   const webAudioState = lofi.context ? lofi.context.state : "no-context";
   const shouldBridge = lofi.nativeAudioOnly || webAudioState !== "running" || event === "gesture";
@@ -1908,6 +2195,185 @@ function postNativeGameCenter(event, payload = {}) {
   } catch {
     return false;
   }
+}
+
+function hasNativePurchaseBridge() {
+  return Boolean(window.webkit?.messageHandlers?.nativePurchase);
+}
+
+function postNativePurchase(event, payload = {}) {
+  const handler = window.webkit && window.webkit.messageHandlers
+    ? window.webkit.messageHandlers.nativePurchase
+    : null;
+
+  if (!handler) return false;
+
+  try {
+    handler.postMessage({
+      event,
+      ...payload,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function hasNativeAdBridge() {
+  return Boolean(window.webkit?.messageHandlers?.nativeRewardedAd);
+}
+
+function postNativeAd(event, payload = {}) {
+  const handler = window.webkit && window.webkit.messageHandlers
+    ? window.webkit.messageHandlers.nativeRewardedAd
+    : null;
+
+  if (!handler) return false;
+
+  try {
+    handler.postMessage({
+      event,
+      ...payload,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function receiveNativeAdResult(payload = {}) {
+  const status = typeof payload.status === "string" ? payload.status : "";
+  const backdrop = typeof payload.backdrop === "string" ? payload.backdrop : pendingRewardedBackdrop;
+  pendingRewardedBackdrop = "";
+  if (status !== "rewarded" || !BACKDROP_IDS.includes(backdrop)) {
+    if (backgroundPreviewAdBtn) backgroundPreviewAdBtn.textContent = "Ad Unavailable";
+    return;
+  }
+  grantTemporaryBackdropAccess(backdrop, REWARDED_BACKDROP_ACCESS_HOURS);
+}
+
+window.bloomwaveNativeAds = {
+  receiveReward: receiveNativeAdResult,
+};
+
+function requestNativeProducts() {
+  if (nativeProductsRequested || !hasNativePurchaseBridge()) return;
+  nativeProductsRequested = postNativePurchase("loadProducts", {
+    productIDs: [LIFETIME_PRODUCT_ID, ...Object.values(BACKDROP_PRODUCT_IDS)],
+  });
+}
+
+function requestNativeEntitlements() {
+  if (nativeEntitlementsRequested || !hasNativePurchaseBridge()) return;
+  nativeEntitlementsRequested = postNativePurchase("loadEntitlements", {});
+}
+
+function applyOwnedProductIDs(productIDs = []) {
+  let changed = false;
+  for (const productID of productIDs) {
+    if (productID === LIFETIME_PRODUCT_ID) {
+      unlockLifetimeBackgrounds();
+      changed = true;
+      continue;
+    }
+
+    const backdrop = PRODUCT_BACKDROP_IDS[productID];
+    if (!backdrop) continue;
+    const before = isBackdropUnlocked(backdrop);
+    unlockBackdrop(backdrop);
+    changed = changed || !before;
+  }
+  if (changed) syncBackdropTiles();
+}
+
+function receiveNativePurchaseProducts(payload = {}) {
+  nativeProductsRequested = false;
+  const prices = {};
+  const products = Array.isArray(payload.products) ? payload.products : [];
+  for (const product of products) {
+    if (!product || typeof product !== "object") continue;
+    const id = typeof product.id === "string" ? product.id : "";
+    const price = typeof product.displayPrice === "string" ? product.displayPrice : "";
+    if (id && price) prices[id] = price;
+  }
+  nativeProductPrices = {
+    ...nativeProductPrices,
+    ...prices,
+  };
+  applyOwnedProductIDs(Array.isArray(payload.ownedProductIDs) ? payload.ownedProductIDs : []);
+  syncBackdropTiles();
+}
+
+function receiveNativePurchaseResult(payload = {}) {
+  const status = typeof payload.status === "string" ? payload.status : "";
+  const productID = typeof payload.productID === "string" ? payload.productID : pendingPurchaseProductID;
+  pendingPurchaseProductID = "";
+  const ownedProductIDs = Array.isArray(payload.ownedProductIDs) ? payload.ownedProductIDs : [];
+  if (status === "success" || status === "restored") {
+    applyOwnedProductIDs(ownedProductIDs.length > 0 ? ownedProductIDs : [productID]);
+    const backdrop = PRODUCT_BACKDROP_IDS[productID];
+    if (backdrop && isBackdropUnlocked(backdrop)) {
+      selectBackdrop(backdrop);
+      hideBackgroundPreview();
+    }
+    syncBackdropTiles();
+    return;
+  }
+
+  if (status === "unavailable" && backgroundPreviewPurchaseBtn) {
+    backgroundPreviewPurchaseBtn.textContent = "Unavailable";
+  }
+  syncBackdropTiles();
+}
+
+window.bloomwaveNativePurchases = {
+  receiveProducts: receiveNativePurchaseProducts,
+  receivePurchase: receiveNativePurchaseResult,
+  receiveRestore: receiveNativePurchaseResult,
+};
+
+function purchaseProduct(productID, fallbackUnlock) {
+  if (!productID) return false;
+  if (hasNativePurchaseBridge()) {
+    pendingPurchaseProductID = productID;
+    postNativePurchase("purchase", { productID });
+    return true;
+  }
+  fallbackUnlock();
+  return true;
+}
+
+function purchaseBackdrop(backdrop) {
+  if (!BACKDROP_IDS.includes(backdrop) || isBackdropUnlocked(backdrop)) return;
+  const productID = BACKDROP_PRODUCT_IDS[backdrop];
+  purchaseProduct(productID, () => {
+    unlockBackdrop(backdrop);
+    selectBackdrop(backdrop);
+  });
+}
+
+function purchaseLifetimePass() {
+  if (backdropUnlocks.lifetime) return;
+  purchaseProduct(LIFETIME_PRODUCT_ID, () => {
+    unlockLifetimeBackgrounds();
+    syncBackdropTiles();
+  });
+}
+
+function watchAdForBackdrop(backdrop) {
+  if (!BACKDROP_IDS.includes(backdrop) || backdrop === "classic" || isBackdropUnlocked(backdrop)) return;
+  pendingRewardedBackdrop = backdrop;
+  if (backgroundPreviewAdBtn) {
+    backgroundPreviewAdBtn.textContent = "Loading Ad...";
+    backgroundPreviewAdBtn.disabled = true;
+  }
+  if (hasNativeAdBridge() && postNativeAd("showRewardedBackdropAd", {
+    backdrop,
+    hours: REWARDED_BACKDROP_ACCESS_HOURS,
+  })) {
+    return;
+  }
+  grantTemporaryBackdropAccess(backdrop, REWARDED_BACKDROP_ACCESS_HOURS);
 }
 
 function setStatus(text, seconds = 1.6) {
@@ -1969,11 +2435,12 @@ function pickRegularFlowerType() {
 }
 
 function syncHud() {
-  scoreEl.textContent = formatLargeNumber(state.score);
-  calmEl.textContent = `${state.harvestProgress}/${state.harvestGoal}`;
-  cratesEl.textContent = String(state.crates);
+  const displayedProgress = getDisplayedAccountProgress();
+  if (scoreEl) scoreEl.textContent = formatLargeNumber(displayedProgress.blooms);
+  if (calmEl) calmEl.textContent = `${state.harvestProgress}/${state.harvestGoal}`;
+  if (cratesEl) cratesEl.textContent = formatLargeNumber(displayedProgress.crates);
   if (comboEl) comboEl.textContent = String(state.combo);
-  if (phaseEl) phaseEl.textContent = palette[state.nextPalette].name;
+  if (phaseEl) phaseEl.textContent = palette[state.nextPalette]?.name || "";
 }
 
 function makeChallenge() {
@@ -2096,13 +2563,15 @@ function softReset(showOverlay = true) {
   state.running = false;
   state.time = 0;
   state.score = 0;
+  state.committedScore = 0;
   state.hype = 72;
   state.harvestProgress = 0;
   state.harvestGoal = 12;
   state.crates = 0;
+  state.committedCrates = 0;
   state.combo = 0;
   state.bestCombo = 0;
-  state.nextPalette = 0;
+  state.nextPalette = STARTING_PALETTE;
   state.frenzyTimer = 0;
   state.spawnTimer = 0;
   state.seasonTimer = rand(10, 15);
@@ -2124,6 +2593,8 @@ function softReset(showOverlay = true) {
   state.stats.amberHits = 0;
   state.stats.tealHits = 0;
   state.stats.frenzyCount = 0;
+  lastLeaderboardAutoSaveAtMs = performance.now();
+  lastLeaderboardAutoSaveBlooms = 0;
 
   buildBeds();
   makeChallenge();
@@ -2143,6 +2614,8 @@ function startSession() {
   state.running = true;
   if (!activeUsageSessionStartedAtMs) {
     beginUsageSession();
+    lastLeaderboardAutoSaveAtMs = performance.now();
+    lastLeaderboardAutoSaveBlooms = Math.max(0, Math.floor(state.score));
   }
   setStatus("Session live. Burst clusters to stack combo.", 1.9);
 }
@@ -2248,7 +2721,7 @@ function runPackedLightningExpansion(which, nowFrenzy, removeIds, chainPoints) {
         const point = chainPoints[j];
         const dx = bud.x - point.x;
         const dy = targetY - point.y;
-        const distSq = (dx * dx) + (dy * dy);
+        const distSq = getLayoutAdjustedDistanceSq(dx, dy);
         if (distSq < bestDistSq) {
           bestDistSq = distSq;
           bestBudIndex = i;
@@ -2326,7 +2799,7 @@ function runOpeningFullBoardZap(x, y) {
 
   addPulse(x, y, which, 1.8, 1);
   state.nextPalette = state.nextPalette === 0 ? 1 : 0;
-  if (phaseEl) phaseEl.textContent = palette[state.nextPalette].name;
+  if (phaseEl) phaseEl.textContent = palette[state.nextPalette]?.name || "";
 
   for (const bud of targets) {
     const targetPoint = { x: bud.x, y: bud.y - 4 };
@@ -2401,10 +2874,10 @@ function resolveTapBurst(x, y) {
   const radius = nowFrenzy ? 36 : 32;
   const tapXNorm = x / WORLD_W;
 
-  addPulse(x, y, which, nowFrenzy ? 1.3 : 1, 1);
+  addPulse(x, y, which, (nowFrenzy ? 1.3 : 1) * fieldBurstVisualScale, 1);
 
   state.nextPalette = state.nextPalette === 0 ? 1 : 0;
-  if (phaseEl) phaseEl.textContent = palette[state.nextPalette].name;
+  if (phaseEl) phaseEl.textContent = palette[state.nextPalette]?.name || "";
 
   let directHits = 0;
   let offColorInBurst = 0;
@@ -2418,9 +2891,9 @@ function resolveTapBurst(x, y) {
   const offColor = [];
 
   for (const bud of state.buds) {
-    const dx = bud.x - x;
-    const dy = (bud.y - 3) - y;
-    const dist = Math.hypot(dx, dy);
+    const rawDx = bud.x - x;
+    const rawDy = (bud.y - 3) - y;
+    const dist = Math.sqrt(getLayoutAdjustedDistanceSq(rawDx, rawDy));
 
     if (dist > radius) continue;
 
@@ -2750,6 +3223,7 @@ function update(dt) {
   }
 
   syncHud();
+  autosaveLeaderboardProgress();
 }
 
 function drawSprite(name, x, y, size = 16, alpha = 1) {
@@ -4041,14 +4515,36 @@ function render() {
 }
 
 let prevTime = performance.now();
+let loopErrorCount = 0;
+function scheduleGameLoop() {
+  try {
+    const scheduleFrame = window.requestAnimationFrame || ((callback) => setTimeout(() => callback(performance.now()), 33));
+    scheduleFrame.call(window, loop);
+  } catch (error) {
+    console.warn("[Bloomwave] Frame scheduling failed", error);
+    setTimeout(() => loop(performance.now()), 33);
+  }
+}
+
 function loop(now) {
-  const dt = Math.min(33, now - prevTime);
-  prevTime = now;
+  try {
+    const dt = Math.min(33, now - prevTime);
+    prevTime = now;
 
-  update(dt);
-  render();
+    update(dt);
+    render();
+    loopErrorCount = 0;
+  } catch (error) {
+    loopErrorCount += 1;
+    console.warn("[Bloomwave] Game loop failed", error);
+    if (loopErrorCount >= 3) {
+      state.running = false;
+      setStatus("Recovered from a display hiccup.", 1.5);
+      loopErrorCount = 0;
+    }
+  }
 
-  requestAnimationFrame(loop);
+  scheduleGameLoop();
 }
 
 async function loadSprite(name, src) {
@@ -4164,7 +4660,6 @@ function tryBurstAt(x, y, nowMs = performance.now()) {
 function handlePointerDown(event) {
   event.preventDefault();
   postNativeAudio("gesture");
-  ensureYoutubeAudio();
   handleTap(event.clientX, event.clientY);
 }
 
@@ -4177,39 +4672,54 @@ function nudgeAudio() {
   const now = performance.now();
   if (now - lastAudioNudgeAt < 220) return;
   lastAudioNudgeAt = now;
-  ensureYoutubeAudio();
   if (lofi.started && !lofi.muted) return;
   lofi.primeOnGesture();
   void startAudioMaybe();
 }
 
+let resizeFrame = 0;
 function handleViewportResize() {
-  resizeGameSurface();
+  if (resizeFrame) return;
+  resizeFrame = requestAnimationFrame(() => {
+    resizeFrame = 0;
+    resizeGameSurface();
+  });
 }
 
-canvas.addEventListener("pointerdown", handlePointerDown);
-canvas.addEventListener("pointermove", handlePointerMove);
-window.addEventListener("touchend", nudgeAudio, { passive: true });
-window.addEventListener("focus", () => {
+function settleViewportResize() {
+  handleViewportResize();
+  setTimeout(handleViewportResize, 80);
+  setTimeout(handleViewportResize, 240);
+}
+
+canvas.addEventListener("pointerdown", safeUiAction("pointer down", handlePointerDown));
+canvas.addEventListener("pointermove", safeUiAction("pointer move", handlePointerMove));
+window.addEventListener("touchend", safeUiAction("audio nudge", nudgeAudio), { passive: true });
+window.addEventListener("focus", safeUiAction("focus restore", () => {
+  if (shareResumeGuardUntilMs) guardShareResume(500);
   if (lofi.started) nudgeAudio();
-});
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && lofi.started) nudgeAudio();
-});
-window.addEventListener("pagehide", () => {
+}));
+document.addEventListener("visibilitychange", safeUiAction("visibility restore", () => {
+  if (!document.hidden) {
+    if (shareResumeGuardUntilMs) guardShareResume(500);
+    if (lofi.started) nudgeAudio();
+  }
+}));
+window.addEventListener("pageshow", safeUiAction("page show", () => {
+  if (shareResumeGuardUntilMs) guardShareResume(500);
+}));
+window.addEventListener("pagehide", safeUiAction("page hide", () => {
   if (activeUsageSessionStartedAtMs) {
     finishActiveSession("pagehide");
   }
-});
-window.addEventListener("resize", handleViewportResize);
-window.addEventListener("orientationchange", () => {
-  setTimeout(handleViewportResize, 80);
-});
+}));
+window.addEventListener("resize", safeUiAction("viewport resize", handleViewportResize));
+window.addEventListener("orientationchange", safeUiAction("orientation resize", settleViewportResize));
 if (window.visualViewport) {
-  window.visualViewport.addEventListener("resize", handleViewportResize);
+  window.visualViewport.addEventListener("resize", safeUiAction("visual viewport resize", handleViewportResize));
 }
 
-window.addEventListener("keydown", (event) => {
+window.addEventListener("keydown", safeUiAction("keyboard action", (event) => {
   if (["Space", "ArrowUp", "KeyW"].includes(event.code)) {
     event.preventDefault();
     if (!state.running) return;
@@ -4219,10 +4729,10 @@ window.addEventListener("keydown", (event) => {
     }
     tryBurstAt(state.pointerX, state.pointerY, performance.now());
   }
-});
+}));
 
 if (audioBtn) {
-  audioBtn.addEventListener("click", async () => {
+  audioBtn.addEventListener("click", safeUiAction("audio button", async () => {
     lofi.primeOnGesture();
     const ok = await lofi.ensureStarted();
     if (!ok) {
@@ -4242,64 +4752,63 @@ if (audioBtn) {
     } else {
       setStatus("Lofi muted.", 1.1);
     }
-  });
+  }));
 }
 
 if (restartBtn) {
-  restartBtn.addEventListener("click", () => {
+  restartBtn.addEventListener("click", safeUiAction("restart", () => {
     startSession();
-  });
+  }));
 }
 
 function startFromMenuGesture() {
   lofi.primeOnGesture();
   void startAudioMaybe();
-  ensureYoutubeAudio();
   startSession();
 }
 
 if (playBtn) {
-  playBtn.addEventListener("click", () => {
+  playBtn.addEventListener("click", safeUiAction("play", () => {
     startFromMenuGesture();
-  });
+  }));
 }
 
 if (overlayEl) {
-  overlayEl.addEventListener("click", (event) => {
-    if (event.target.closest(".menu-panel, .background-preview-modal")) return;
+  overlayEl.addEventListener("click", safeUiAction("overlay click", (event) => {
+    if (closestElement(event.target, ".menu-panel, .background-preview-modal")) return;
     startFromMenuGesture();
-  });
+  }));
 }
 
 if (leaderboardBtn) {
-  leaderboardBtn.addEventListener("click", () => {
+  leaderboardBtn.addEventListener("click", safeUiAction("leaderboard open", () => {
     showLeaderboardScreen();
-  });
+  }));
 }
 
 if (leaderboardSearchEl) {
-  leaderboardSearchEl.addEventListener("input", () => {
+  leaderboardSearchEl.addEventListener("input", safeUiAction("leaderboard search", () => {
     leaderboardSearchQuery = leaderboardSearchEl.value;
     renderLeaderboard();
-  });
+  }));
 }
 
 if (shareScoreBtn) {
-  shareScoreBtn.addEventListener("click", (event) => {
+  shareScoreBtn.addEventListener("click", safeUiAction("share score", (event) => {
     event.preventDefault();
     event.stopPropagation();
     void shareScore();
-  });
+  }));
 }
 
 if (customBgBtn) {
-  customBgBtn.addEventListener("click", () => {
+  customBgBtn.addEventListener("click", safeUiAction("custom backgrounds", () => {
     showPremiumScreen();
-  });
+  }));
 }
 
 if (postRunUnlockBtn) {
-  postRunUnlockBtn.addEventListener("click", (event) => {
+  postRunUnlockBtn.addEventListener("click", safeUiAction("post-run unlock", (event) => {
     event.preventDefault();
     event.stopPropagation();
     const backdrop = postRunUnlockBtn.dataset.backdrop;
@@ -4307,153 +4816,162 @@ if (postRunUnlockBtn) {
     if (backdrop && BACKDROP_IDS.includes(backdrop) && !isBackdropUnlocked(backdrop)) {
       showBackgroundPreview(backdrop);
     }
-  });
+  }));
 }
 
 if (leaderboardBackBtn) {
-  leaderboardBackBtn.addEventListener("click", () => {
+  leaderboardBackBtn.addEventListener("click", safeUiAction("leaderboard back", () => {
     showHomeScreen();
-  });
+  }));
 }
 
 if (premiumBackBtn) {
-  premiumBackBtn.addEventListener("click", () => {
+  premiumBackBtn.addEventListener("click", safeUiAction("backgrounds back", () => {
     showHomeScreen();
-  });
+  }));
 }
 
 if (unlockBackgroundsBtn) {
-  unlockBackgroundsBtn.addEventListener("click", () => {
+  unlockBackgroundsBtn.addEventListener("click", safeUiAction("background unlock", () => {
     const backdrop = unlockBackgroundsBtn.dataset.backdrop || selectedLockedBackdrop;
     if (!backdrop || isBackdropUnlocked(backdrop)) {
       syncBackdropTiles();
       return;
     }
 
-    unlockBackdrop(backdrop);
-    selectBackdrop(backdrop);
-  });
+    purchaseBackdrop(backdrop);
+  }));
 }
 
 if (unlockLifetimeBtn) {
-  unlockLifetimeBtn.addEventListener("click", () => {
-    unlockLifetimeBackgrounds();
-    if (selectedLockedBackdrop) {
-      selectBackdrop(selectedLockedBackdrop);
-    } else {
-      syncBackdropTiles();
-    }
-  });
+  unlockLifetimeBtn.addEventListener("click", safeUiAction("lifetime unlock", () => {
+    purchaseLifetimePass();
+  }));
+}
+
+if (restorePurchasesBtn) {
+  restorePurchasesBtn.addEventListener("click", safeUiAction("restore purchases", () => {
+    if (!hasNativePurchaseBridge()) return;
+    postNativePurchase("restore", {});
+  }));
 }
 
 for (const tile of backgroundTileEls) {
-  tile.addEventListener("click", () => {
+  tile.addEventListener("click", safeUiAction("background tile", () => {
+    if (isShareResumeGuardActive()) return;
     const backdrop = tile.dataset.backdrop;
-    if (isBackdropUnlocked(backdrop)) {
+    if (!BACKDROP_IDS.includes(backdrop)) return;
+    if (isBackdropUsable(backdrop)) {
       selectBackdrop(backdrop);
       hideBackgroundPreview();
       return;
     }
     showBackgroundPreview(backdrop);
-  });
+  }));
 }
 
 if (backgroundPreviewCloseBtn) {
-  backgroundPreviewCloseBtn.addEventListener("click", (event) => {
+  backgroundPreviewCloseBtn.addEventListener("click", safeUiAction("preview close", (event) => {
     event.preventDefault();
     event.stopPropagation();
     closeBackgroundPreviewToOverview();
-  });
+  }));
 }
 
 if (backgroundPreviewModalEl) {
-  backgroundPreviewModalEl.addEventListener("click", (event) => {
+  backgroundPreviewModalEl.addEventListener("click", safeUiAction("preview backdrop", (event) => {
     if (event.target !== backgroundPreviewModalEl) return;
     event.preventDefault();
     event.stopPropagation();
     closeBackgroundPreviewToOverview();
-  });
+  }));
 }
 
 if (backgroundPreviewUseBtn) {
-  backgroundPreviewUseBtn.addEventListener("click", () => {
+  backgroundPreviewUseBtn.addEventListener("click", safeUiAction("preview use", () => {
     const backdrop = backgroundPreviewUseBtn.dataset.backdrop;
-    if (!backdrop || !isBackdropUnlocked(backdrop)) return;
+    if (!BACKDROP_IDS.includes(backdrop) || !isBackdropUsable(backdrop)) return;
     selectBackdrop(backdrop);
     hideBackgroundPreview();
-  });
+  }));
+}
+
+if (backgroundPreviewAdBtn) {
+  backgroundPreviewAdBtn.addEventListener("click", safeUiAction("preview watch ad", () => {
+    const backdrop = backgroundPreviewAdBtn.dataset.backdrop;
+    if (!BACKDROP_IDS.includes(backdrop) || isBackdropUnlocked(backdrop)) return;
+    watchAdForBackdrop(backdrop);
+  }));
 }
 
 if (backgroundPreviewPurchaseBtn) {
-  backgroundPreviewPurchaseBtn.addEventListener("click", () => {
+  backgroundPreviewPurchaseBtn.addEventListener("click", safeUiAction("preview purchase", () => {
     const backdrop = backgroundPreviewPurchaseBtn.dataset.backdrop;
-    if (!backdrop || isBackdropUnlocked(backdrop)) return;
-    unlockBackdrop(backdrop);
-    selectBackdrop(backdrop);
-    hideBackgroundPreview();
-  });
+    if (!BACKDROP_IDS.includes(backdrop) || isBackdropUnlocked(backdrop)) return;
+    purchaseBackdrop(backdrop);
+  }));
 }
 
 if (colorBackdropBtn && colorBackdropInput) {
-  colorBackdropBtn.addEventListener("click", (event) => {
+  colorBackdropBtn.addEventListener("click", safeUiAction("color picker open", (event) => {
     event.preventDefault();
     event.stopPropagation();
     colorBackdropInput.click();
-  });
+  }));
 }
 
 if (colorBackdropInput) {
-  colorBackdropInput.addEventListener("input", () => {
+  colorBackdropInput.addEventListener("input", safeUiAction("color input", () => {
     setBackdropColor(colorBackdropInput.value);
-  });
-  colorBackdropInput.addEventListener("change", () => {
+  }));
+  colorBackdropInput.addEventListener("change", safeUiAction("color change", () => {
     setBackdropColor(colorBackdropInput.value);
-  });
-}
-
-if (youtubeHideBtn) {
-  youtubeHideBtn.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    pauseYoutubeAudio();
-    setYoutubePanelVisible(false);
-  });
-}
-
-if (youtubeShowBtn) {
-  youtubeShowBtn.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setYoutubePanelVisible(true);
-    ensureYoutubeAudio();
-  });
+  }));
 }
 
 if (menuCornerBtn) {
-  menuCornerBtn.addEventListener("click", (event) => {
+  menuCornerBtn.addEventListener("click", safeUiAction("menu open", (event) => {
     event.preventDefault();
     event.stopPropagation();
     openMenuFromGame();
-  });
+  }));
 }
 
-resizeGameSurface();
-if (bedSlots.length === 0) {
-  rebuildBedSlots();
+function initializeGame() {
+  try {
+    resizeGameSurface();
+    if (bedSlots.length === 0) {
+      rebuildBedSlots();
+    }
+    state.backdrop = readBackdropPreference();
+    if (!isBackdropUsable(state.backdrop)) {
+      state.backdrop = "classic";
+      writeBackdropPreference(state.backdrop);
+    }
+    state.backdropColor = readBackdropColorPreference();
+    requestNativeLeaderboard();
+    requestNativeProducts();
+    requestNativeEntitlements();
+    syncBackdropTiles();
+    if (shouldSkipMenuForFirstStart()) {
+      startSession();
+    } else {
+      softReset(true);
+    }
+    loadSprites();
+  } catch (error) {
+    console.warn("[Bloomwave] Game initialization recovered", error);
+    state.backdrop = "classic";
+    state.backdropColor = DEFAULT_BACKDROP_COLOR;
+    try {
+      softReset(true);
+      showHomeScreen();
+    } catch (fallbackError) {
+      console.warn("[Bloomwave] Game initialization fallback failed", fallbackError);
+    }
+  } finally {
+    scheduleGameLoop();
+  }
 }
-state.backdrop = readBackdropPreference();
-if (!isBackdropUnlocked(state.backdrop)) {
-  state.backdrop = "classic";
-  writeBackdropPreference(state.backdrop);
-}
-state.backdropColor = readBackdropColorPreference();
-syncBackdropTiles();
-setYoutubePanelVisible(true);
-ensureYoutubeAudio();
-if (shouldSkipMenuForFirstStart()) {
-  startSession();
-} else {
-  softReset(true);
-}
-loadSprites();
-requestAnimationFrame(loop);
+
+initializeGame();

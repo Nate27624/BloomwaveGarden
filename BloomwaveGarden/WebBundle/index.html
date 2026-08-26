@@ -49,11 +49,20 @@
               </button>
             </div>
             <aside id="post-run-unlock-prompt" class="post-run-unlock-prompt screen-hidden" aria-label="Background unlock progress">
+              <span class="post-run-unlock-icon" aria-hidden="true">
+                <span></span>
+              </span>
               <div class="post-run-unlock-copy">
                 <span class="post-run-unlock-kicker">Map progress</span>
                 <p id="post-run-unlock-text">You earned 0 Blooms.</p>
+                <div class="post-run-unlock-meter" aria-hidden="true">
+                  <span id="post-run-unlock-progress-fill"></span>
+                </div>
+                <small id="post-run-unlock-price" class="post-run-unlock-price">Try now free for 24h</small>
               </div>
-              <button id="post-run-unlock-btn" type="button" class="post-run-unlock-btn">View</button>
+              <button id="post-run-unlock-btn" type="button" class="post-run-unlock-btn">
+                <span>View</span>
+              </button>
             </aside>
           </section>
 
@@ -126,13 +135,15 @@
             </div>
             <div class="purchase-actions">
               <button id="unlock-backgrounds-btn" type="button" class="unlock-btn">Unlock Selected $0.99</button>
-              <button id="unlock-lifetime-btn" type="button" class="unlock-btn lifetime-btn">Lifetime Pass $4.99</button>
+              <button id="unlock-lifetime-btn" type="button" class="unlock-btn lifetime-btn">
+                <span class="lifetime-btn-main">Lifetime Pass <span id="lifetime-price">$4.99</span></span>
+                <span class="lifetime-btn-note">(best value)</span>
+              </button>
             </div>
-            <div id="lifetime-value" class="lifetime-value">
-              <span id="lifetime-value-kicker" class="lifetime-value-kicker">Best value</span>
-              <span id="lifetime-value-text" class="lifetime-value-text">Lifetime Pass unlocks every current background plus every future map.</span>
+            <p id="funding-note" class="funding-note">Thank you for considering purchasing a background. These funds help us build more fun, simple games.</p>
+            <div class="purchase-utility-actions">
+              <button id="restore-purchases-btn" type="button" class="restore-btn">Restore Purchases</button>
             </div>
-            <p id="funding-note" class="funding-note">Thank you for considering purchasing a background, these funds will be put towards developing more fun, simple games with no ads!</p>
             <div class="menu-actions single-action">
               <button id="premium-back-btn" type="button" class="menu-btn">Back</button>
             </div>
@@ -154,6 +165,7 @@
                   </div>
                   <p id="background-preview-remaining" class="background-preview-remaining">0 Blooms left</p>
                 </div>
+                <button id="background-preview-ad-btn" type="button" class="unlock-btn ad-equip-btn">Watch Ad: Equip 24h</button>
                 <button id="background-preview-purchase-btn" type="button" class="unlock-btn">Purchase for $.50</button>
               </div>
             </div>
@@ -180,26 +192,6 @@
           </svg>
         </button>
         <input id="color-backdrop-input" class="color-backdrop-input" type="color" value="#7c68d8" aria-label="Backdrop color" />
-        <aside class="youtube-audio-panel" aria-label="Background YouTube audio">
-          <div id="youtube-player" class="youtube-player"></div>
-          <div class="youtube-audio-actions">
-            <button id="youtube-hide-btn" class="youtube-icon-btn" type="button" aria-label="Hide and pause YouTube audio">
-              <svg class="youtube-action-icon" viewBox="0 0 16 16" aria-hidden="true">
-                <rect x="3" y="4" width="10" height="8" fill="#2c1d10"></rect>
-                <rect x="4" y="5" width="8" height="6" fill="#f6c474"></rect>
-                <rect x="2" y="3" width="12" height="1" fill="#2c1d10"></rect>
-              </svg>
-            </button>
-          </div>
-        </aside>
-        <button id="youtube-show-btn" class="youtube-show-btn is-hidden" type="button" aria-label="Show YouTube audio">
-          <svg class="youtube-show-icon" viewBox="0 0 16 16" aria-hidden="true">
-            <rect x="8" y="2" width="2" height="9" fill="#2c1d10"></rect>
-            <rect x="10" y="2" width="4" height="2" fill="#2c1d10"></rect>
-            <rect x="5" y="9" width="5" height="4" fill="#2c1d10"></rect>
-            <rect x="4" y="10" width="2" height="2" fill="#2c1d10"></rect>
-          </svg>
-        </button>
       </section>
 
       <footer class="controls">
