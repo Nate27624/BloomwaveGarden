@@ -7,11 +7,13 @@ const overlayTitleEl = document.getElementById("overlay-title");
 const homeScreenEl = document.getElementById("home-screen");
 const leaderboardScreenEl = document.getElementById("leaderboard-screen");
 const premiumScreenEl = document.getElementById("premium-screen");
+const settingsScreenEl = document.getElementById("settings-screen");
 const playBtn = document.getElementById("play-btn");
 const leaderboardBtn = document.getElementById("leaderboard-btn");
 const customBgBtn = document.getElementById("custom-bg-btn");
 const leaderboardBackBtn = document.getElementById("leaderboard-back-btn");
 const premiumBackBtn = document.getElementById("premium-back-btn");
+const settingsBackBtn = document.getElementById("settings-back-btn");
 const unlockBackgroundsBtn = document.getElementById("unlock-backgrounds-btn");
 const unlockLifetimeBtn = document.getElementById("unlock-lifetime-btn");
 const lifetimePriceEl = document.getElementById("lifetime-price");
@@ -44,10 +46,16 @@ const scoreboardBloomsEl = document.getElementById("scoreboard-blooms");
 const scoreboardCratesEl = document.getElementById("scoreboard-crates");
 const scoreboardCrateGridEl = document.getElementById("scoreboard-crate-grid");
 const menuCornerBtn = document.getElementById("menu-corner-btn");
+const settingsCornerBtn = document.getElementById("settings-corner-btn");
+const tapVolumeInput = document.getElementById("tap-volume-input");
+const tapVolumeValueEl = document.getElementById("tap-volume-value");
+const gameCenterVisibilityToggle = document.getElementById("game-center-visibility-toggle");
+const gameplayHudToggle = document.getElementById("gameplay-hud-toggle");
 const colorBackdropBtn = document.getElementById("color-backdrop-btn");
 const colorBackdropInput = document.getElementById("color-backdrop-input");
 const stageWrapEl = document.querySelector(".stage-wrap");
 const hudEl = document.querySelector(".hud");
+const homeMenuActionsEl = homeScreenEl?.querySelector(".menu-actions");
 
 const scoreEl = document.getElementById("score");
 const calmEl = document.getElementById("calm");
@@ -96,7 +104,14 @@ const TEMP_BACKDROP_ACCESS_STORAGE_KEY = "bloomwave_backdrop_temp_access_v1";
 const TEMP_USAGE_LOG_STORAGE_KEY = "bloomwave_usage_log_tmp_v1";
 const FIRST_START_STORAGE_KEY = "bloomwave_first_start_seen_v1";
 const DAILY_DEAL_STORAGE_KEY = "bloomwave_daily_background_deal_v1";
+const GAME_SETTINGS_STORAGE_KEY = "bloomwave_game_settings_v1";
+const GAME_SETTINGS_MIGRATION_KEY = "bloomwave_game_settings_migration_v1";
 const DEFAULT_BACKDROP_COLOR = "#7c68d8";
+const DEFAULT_GAME_SETTINGS = {
+  tapEffectVolume: 1,
+  showOnGameCenter: true,
+  showGameplayHud: true,
+};
 const BACKDROP_IDS = ["classic", "twilight", "aurora", "ember", "color", "flag", "rose", "frost", "azure"];
 const BASE_UNLOCKED_BACKDROP_IDS = ["classic"];
 const FREE_BACKDROP_IDS = ["classic", "twilight", "aurora"];
@@ -105,7 +120,7 @@ const BACKDROP_PRICE_LABELS = Object.fromEntries(
     .filter((backdrop) => backdrop !== "classic")
     .map((backdrop) => [backdrop, FREE_BACKDROP_IDS.includes(backdrop) ? "$.50" : "$0.99"]),
 );
-const FUNDING_NOTE_DEFAULT = "Thank you for considering purchasing a background. These funds help us build more fun, simple games.";
+const FUNDING_NOTE_DEFAULT = "Lifetime Pass unlocks every custom background in one purchase.";
 const FUNDING_NOTE_LIFETIME_ACTIVE = "Thank you for your purchase! More maps are planned for development.";
 const DAILY_DEAL_PRICE_LABEL = "$.50";
 const REWARDED_BACKDROP_ACCESS_HOURS = 24;
@@ -149,9 +164,9 @@ const BACKDROP_DISPLAY_NAMES = {
 };
 const BACKDROP_DESCRIPTIONS = {
   classic: "Sunny rows, soft grass, and the original farm view.",
-  twilight: "Neon skyline, glowing windows, and a deep violet grove.",
+  twilight: "Neon skyline, glowing windows, and a violet grove.",
   aurora: "Moonlit waterfalls, fireflies, and cool forest mist.",
-  ember: "Grazing deer, warm grass, and a calm ember meadow.",
+  ember: "Deer, warm grass, and a calm ember meadow.",
   color: "A clean field in your chosen color.",
   flag: "Flag of the United States.",
   rose: "Pink dunes, rose-tinted grass, and a soft desert glow.",
@@ -561,7 +576,7 @@ function hasTemporaryBackdropAccess(backdrop) {
 }
 
 function grantTemporaryBackdropAccess(backdrop, hours = REWARDED_BACKDROP_ACCESS_HOURS) {
-  if (!BACKDROP_IDS.includes(backdrop) || backdrop === "classic") return;
+  if (!isCustomBackgroundsEnabled() || !BACKDROP_IDS.includes(backdrop) || backdrop === "classic") return;
   temporaryBackdropAccess = {
     ...readTemporaryBackdropAccess(),
     [backdrop]: Date.now() + hours * 60 * 60 * 1000,
@@ -636,7 +651,55 @@ function isDailyDealBackdrop(backdrop) {
   return backdrop === getDailyDealBackdrop();
 }
 
+function isPurchaseUiEnabled() {
+  return window.__BLOOM_IAP_ENABLED !== false;
+}
+
+function isRewardedAdsEnabled() {
+  return window.__BLOOM_REWARDED_ADS_ENABLED === true;
+}
+
+function isLifetimePassOnlyMode() {
+  return window.__BLOOM_LIFETIME_PASS_ONLY === true;
+}
+
+function isCustomBackgroundsEnabled() {
+  return isPurchaseUiEnabled();
+}
+
+function normalizeBackdropPreference(backdrop) {
+  const nextBackdrop = BACKDROP_IDS.includes(backdrop) ? backdrop : "classic";
+  if (!isCustomBackgroundsEnabled() && nextBackdrop !== "classic") {
+    return "classic";
+  }
+  return nextBackdrop;
+}
+
+function syncCustomBackgroundAvailability() {
+  const enabled = isCustomBackgroundsEnabled();
+  homeMenuActionsEl?.classList.toggle("without-premium-btn", !enabled);
+  if (customBgBtn) {
+    customBgBtn.hidden = !enabled;
+    customBgBtn.disabled = !enabled;
+    customBgBtn.setAttribute("aria-hidden", enabled ? "false" : "true");
+    if (!enabled && customBgBtn.isConnected) {
+      customBgBtn.remove();
+    }
+  }
+  if (!enabled) {
+    premiumScreenEl?.classList.add("screen-hidden");
+    backgroundPreviewModalEl?.classList.add("screen-hidden");
+    selectedLockedBackdrop = null;
+    if (state.backdrop !== "classic") {
+      state.backdrop = "classic";
+      writeBackdropPreference("classic");
+    }
+  }
+}
+
 function getBackdropPriceLabel(backdrop) {
+  if (!isPurchaseUiEnabled()) return "";
+  if (isLifetimePassOnlyMode() && backdrop !== "classic") return getLifetimePriceLabel();
   if (isDailyDealBackdrop(backdrop) && !isBackdropUnlocked(backdrop)) return DAILY_DEAL_PRICE_LABEL;
   const productID = BACKDROP_PRODUCT_IDS[backdrop];
   return (productID && nativeProductPrices[productID]) || BACKDROP_PRICE_LABELS[backdrop] || "$0.99";
@@ -648,16 +711,17 @@ function getLifetimePriceLabel() {
 
 function syncBackdropTiles() {
   const previewBackdrop = selectedLockedBackdrop || state.backdrop;
+  const purchaseUiEnabled = isPurchaseUiEnabled();
   temporaryBackdropAccess = readTemporaryBackdropAccess();
   for (const tile of backgroundTileEls) {
     const backdrop = tile.dataset.backdrop;
     if (!BACKDROP_IDS.includes(backdrop)) continue;
     const selected = backdrop === previewBackdrop;
-    const free = isBackdropFree(backdrop);
+    const free = isLifetimePassOnlyMode() ? backdrop === "classic" : isBackdropFree(backdrop);
     const unlocked = isBackdropUnlocked(backdrop);
     const tempAccess = hasTemporaryBackdropAccess(backdrop);
     const usable = unlocked || tempAccess;
-    const dailyDeal = isDailyDealBackdrop(backdrop) && !unlocked && !tempAccess;
+    const dailyDeal = purchaseUiEnabled && !isLifetimePassOnlyMode() && isDailyDealBackdrop(backdrop) && !unlocked && !tempAccess;
     tile.classList.toggle("is-selected", selected);
     tile.classList.toggle("is-free", free);
     tile.classList.toggle("is-locked", !usable);
@@ -665,7 +729,9 @@ function syncBackdropTiles() {
     tile.classList.toggle("is-daily-deal", dailyDeal);
     tile.setAttribute("aria-pressed", selected ? "true" : "false");
     tile.setAttribute("aria-label", `${BACKDROP_DISPLAY_NAMES[backdrop] || "Background"} ${usable ? "available" : "locked"}`);
-    tile.dataset.price = dailyDeal ? `Deal ${getBackdropPriceLabel(backdrop)}` : getBackdropBadge(backdrop, unlocked, tempAccess);
+    tile.dataset.price = purchaseUiEnabled
+      ? (dailyDeal ? `Deal ${getBackdropPriceLabel(backdrop)}` : getBackdropBadge(backdrop, unlocked, tempAccess))
+      : "";
     tile.dataset.deal = "";
     tile.querySelector("span")?.setAttribute("data-deal", "");
   }
@@ -683,15 +749,18 @@ function syncBackdropTiles() {
       unlockLifetimeBtn.textContent = `Lifetime Pass ${getLifetimePriceLabel()} (best value)`;
     }
     unlockLifetimeBtn.disabled = backdropUnlocks.lifetime;
-    unlockLifetimeBtn.classList.toggle("is-hidden", backdropUnlocks.lifetime);
+    unlockLifetimeBtn.classList.toggle("is-hidden", !purchaseUiEnabled || backdropUnlocks.lifetime);
   }
 
   if (restorePurchasesBtn) {
-    restorePurchasesBtn.classList.toggle("is-hidden", !hasNativePurchaseBridge() || backdropUnlocks.lifetime);
+    restorePurchasesBtn.classList.toggle("is-hidden", !purchaseUiEnabled || !hasNativePurchaseBridge() || backdropUnlocks.lifetime);
   }
 
   if (fundingNoteEl) {
-    fundingNoteEl.textContent = backdropUnlocks.lifetime ? FUNDING_NOTE_LIFETIME_ACTIVE : FUNDING_NOTE_DEFAULT;
+    fundingNoteEl.classList.toggle("screen-hidden", !purchaseUiEnabled);
+    if (purchaseUiEnabled) {
+      fundingNoteEl.textContent = backdropUnlocks.lifetime ? FUNDING_NOTE_LIFETIME_ACTIVE : FUNDING_NOTE_DEFAULT;
+    }
   }
 
   syncColorControls();
@@ -699,6 +768,7 @@ function syncBackdropTiles() {
 
 function selectBackdrop(backdrop) {
   if (!BACKDROP_IDS.includes(backdrop)) return;
+  if (!isCustomBackgroundsEnabled() && backdrop !== "classic") return;
   if (!isBackdropUsable(backdrop)) {
     selectedLockedBackdrop = backdrop;
     syncBackdropTiles();
@@ -753,8 +823,27 @@ function getBackdropUnlockLine(backdrop, unlocked, stats = getTemporaryUsageStat
   return "";
 }
 
+function syncBackgroundPreviewAdButton(backdrop) {
+  if (!backgroundPreviewAdBtn || !BACKDROP_IDS.includes(backdrop)) return;
+  const tempAccess = hasTemporaryBackdropAccess(backdrop);
+  const unlocked = isBackdropUnlocked(backdrop);
+  const canWatchAd = isRewardedAdsEnabled() && hasNativeAdBridge() && backdrop !== "classic" && !unlocked && !tempAccess;
+  const adReady = nativeRewardedAdStatus.ready;
+  const adLoading = nativeRewardedAdStatus.loading;
+  backgroundPreviewAdBtn.textContent = tempAccess && !unlocked
+    ? `Equipped ${formatTemporaryAccessRemaining(getTemporaryBackdropExpiresAt(backdrop))}`
+    : adLoading
+      ? "Loading Ad..."
+      : adReady
+        ? "Watch Ad: 24h Access"
+        : "Retry Ad Load";
+  backgroundPreviewAdBtn.disabled = !canWatchAd || adLoading;
+  backgroundPreviewAdBtn.classList.toggle("is-hidden", !isRewardedAdsEnabled() || !hasNativeAdBridge() || backdrop === "classic" || unlocked);
+  backgroundPreviewAdBtn.dataset.backdrop = canWatchAd ? backdrop : "";
+}
+
 function showBackgroundPreview(backdrop) {
-  if (!BACKDROP_IDS.includes(backdrop) || !backgroundPreviewModalEl) return;
+  if (!isCustomBackgroundsEnabled() || !BACKDROP_IDS.includes(backdrop) || !backgroundPreviewModalEl) return;
   temporaryBackdropAccess = readTemporaryBackdropAccess();
   const tempAccess = hasTemporaryBackdropAccess(backdrop);
   const usable = isBackdropUsable(backdrop);
@@ -764,7 +853,7 @@ function showBackgroundPreview(backdrop) {
   const name = BACKDROP_DISPLAY_NAMES[backdrop] || "Background";
   const price = getBackdropPriceLabel(backdrop);
   const progress = getBackdropUnlockProgress(backdrop, stats);
-  const hasBloomUnlock = progress.targetBlooms > 0;
+  const hasBloomUnlock = !isLifetimePassOnlyMode() && progress.targetBlooms > 0;
   const remainingBlooms = Math.max(0, Math.ceil(progress.targetBlooms - stats.totalBlooms));
 
   if (backgroundPreviewTitleEl) backgroundPreviewTitleEl.textContent = name;
@@ -787,25 +876,22 @@ function showBackgroundPreview(backdrop) {
     const tempExpiresAt = getTemporaryBackdropExpiresAt(backdrop);
     backgroundPreviewRemainingEl.textContent = unlocked
       ? "Unlocked"
+      : isLifetimePassOnlyMode()
+        ? `Unlock all custom backgrounds with Lifetime Pass ${getLifetimePriceLabel()}.`
       : tempAccess && tempExpiresAt
         ? `Equipped for ${formatTemporaryAccessRemaining(tempExpiresAt)}`
         : hasBloomUnlock
           ? `${formatLargeNumber(remainingBlooms)} Blooms left`
           : "";
     backgroundPreviewRemainingEl.classList.toggle("is-hidden", !backgroundPreviewRemainingEl.textContent);
+    backgroundPreviewRemainingEl.classList.remove("is-error");
   }
-  if (backgroundPreviewAdBtn) {
-    const canWatchAd = backdrop !== "classic" && !unlocked && !tempAccess;
-    backgroundPreviewAdBtn.textContent = tempAccess && !unlocked
-      ? `Equipped ${formatTemporaryAccessRemaining(getTemporaryBackdropExpiresAt(backdrop))}`
-      : `Watch Ad: 24h Access`;
-    backgroundPreviewAdBtn.disabled = !canWatchAd;
-    backgroundPreviewAdBtn.classList.toggle("is-hidden", backdrop === "classic" || unlocked);
-    backgroundPreviewAdBtn.dataset.backdrop = canWatchAd ? backdrop : "";
-  }
+  syncBackgroundPreviewAdButton(backdrop);
   if (backgroundPreviewPurchaseBtn) {
-    const canPurchase = backdrop !== "classic" && Boolean(BACKDROP_PRICE_LABELS[backdrop]) && !unlocked;
-    backgroundPreviewPurchaseBtn.textContent = `Unlock Forever ${price}`;
+    const canPurchase = isPurchaseUiEnabled() && backdrop !== "classic" && !unlocked;
+    backgroundPreviewPurchaseBtn.textContent = isLifetimePassOnlyMode()
+      ? `Get Lifetime Pass ${getLifetimePriceLabel()}`
+      : `Unlock Forever ${price}`;
     backgroundPreviewPurchaseBtn.disabled = !canPurchase;
     backgroundPreviewPurchaseBtn.classList.toggle("is-hidden", !canPurchase);
     backgroundPreviewPurchaseBtn.dataset.backdrop = canPurchase ? backdrop : "";
@@ -813,6 +899,9 @@ function showBackgroundPreview(backdrop) {
 
   renderBackgroundPreview(backdrop);
   syncBackdropTiles();
+  if (isRewardedAdsEnabled() && hasNativeAdBridge() && !unlocked && !tempAccess && backdrop !== "classic") {
+    requestNativeRewardedAdStatus();
+  }
   backgroundPreviewModalEl.classList.remove("screen-hidden");
 }
 
@@ -1038,6 +1127,116 @@ function writePlayerTotals(totals) {
   }
 }
 
+function normalizeGameSettings(settings = {}) {
+  const tapEffectVolume = Number(settings.tapEffectVolume);
+  return {
+    tapEffectVolume: Number.isFinite(tapEffectVolume) ? clamp(tapEffectVolume, 0, 1) : DEFAULT_GAME_SETTINGS.tapEffectVolume,
+    showOnGameCenter: settings.showOnGameCenter !== false,
+    showGameplayHud: settings.showGameplayHud !== false,
+  };
+}
+
+function readGameSettings() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(GAME_SETTINGS_STORAGE_KEY) || "{}");
+    return normalizeGameSettings({
+      ...DEFAULT_GAME_SETTINGS,
+      ...parsed,
+    });
+  } catch {
+    return { ...DEFAULT_GAME_SETTINGS };
+  }
+}
+
+function migrateGameSettings(settings) {
+  let nextSettings = normalizeGameSettings(settings);
+  try {
+    const migrationState = JSON.parse(localStorage.getItem(GAME_SETTINGS_MIGRATION_KEY) || "{}");
+    if (migrationState?.resetLeaderboardPreferenceAfterRemoveScoreButton !== true) {
+      nextSettings = {
+        ...nextSettings,
+        showOnGameCenter: true,
+      };
+      localStorage.setItem(GAME_SETTINGS_MIGRATION_KEY, JSON.stringify({
+        ...migrationState,
+        resetLeaderboardPreferenceAfterRemoveScoreButton: true,
+      }));
+      writeGameSettings(nextSettings);
+    }
+  } catch {
+    nextSettings = {
+      ...nextSettings,
+      showOnGameCenter: true,
+    };
+    try {
+      localStorage.setItem(GAME_SETTINGS_MIGRATION_KEY, JSON.stringify({
+        resetLeaderboardPreferenceAfterRemoveScoreButton: true,
+      }));
+      writeGameSettings(nextSettings);
+    } catch {
+      // Ignore storage migration failures.
+    }
+  }
+  return nextSettings;
+}
+
+function writeGameSettings(settings) {
+  try {
+    localStorage.setItem(GAME_SETTINGS_STORAGE_KEY, JSON.stringify(normalizeGameSettings(settings)));
+  } catch {
+    // Ignore storage write failures (private mode / quota / blocked storage).
+  }
+}
+
+function syncSettingsControls() {
+  const volumePercent = Math.round(appSettings.tapEffectVolume * 100);
+  if (tapVolumeInput) tapVolumeInput.value = String(volumePercent);
+  if (tapVolumeValueEl) tapVolumeValueEl.textContent = `${volumePercent}%`;
+  if (gameCenterVisibilityToggle) {
+    gameCenterVisibilityToggle.checked = appSettings.showOnGameCenter;
+  }
+  if (gameplayHudToggle) {
+    gameplayHudToggle.checked = appSettings.showGameplayHud;
+  }
+}
+
+function applyAudioSettings() {
+  if (typeof lofi !== "undefined" && lofi?.setEffectVolume) {
+    lofi.setEffectVolume(appSettings.tapEffectVolume);
+  }
+  postNativeAudio("settings", {
+    effectVolume: appSettings.tapEffectVolume,
+  });
+}
+
+function updateGameSettings(nextSettings = {}) {
+  const refreshGameCenter = Object.prototype.hasOwnProperty.call(nextSettings, "showOnGameCenter");
+  appSettings = normalizeGameSettings({
+    ...appSettings,
+    ...nextSettings,
+  });
+  writeGameSettings(appSettings);
+  syncSettingsControls();
+  applyAudioSettings();
+  if (refreshGameCenter && hasNativeGameCenterBridge()) {
+    nativeLeaderboardRequested = false;
+    requestNativeLeaderboard();
+  }
+  renderLeaderboard();
+}
+
+function shouldShowOnGameCenter() {
+  return appSettings.showOnGameCenter !== false;
+}
+
+function shouldDisplayLocalLeaderboardEntry() {
+  return shouldShowOnGameCenter();
+}
+
+function shouldShowGameplayHud() {
+  return appSettings.showGameplayHud !== false;
+}
+
 function getUncommittedSessionProgress() {
   return {
     blooms: Math.max(0, Math.floor(state.score) - Math.max(0, Math.floor(state.committedScore) || 0)),
@@ -1077,6 +1276,7 @@ function syncPlayerTotalsFromLocalLeaderboard(entries = leaderboardEntries) {
 
 function maybeSubmitStoredTotalsToNative(nativeBlooms = 0) {
   if (!hasNativeGameCenterBridge()) return;
+  if (!shouldShowOnGameCenter()) return;
   if (playerTotals.blooms <= 0 || playerTotals.blooms <= nativeBlooms) return;
   postNativeGameCenter("submitScore", {
     score: playerTotals.blooms,
@@ -1085,6 +1285,7 @@ function maybeSubmitStoredTotalsToNative(nativeBlooms = 0) {
 }
 
 const localPlayerProfile = readPlayerProfile();
+let appSettings = migrateGameSettings(readGameSettings());
 let leaderboardEntries = readLeaderboard(localPlayerProfile);
 let selectedScoreboardEntryId = localPlayerProfile.id;
 let leaderboardSearchQuery = "";
@@ -1097,6 +1298,12 @@ let nativeEntitlementsRequested = false;
 let nativeProductPrices = {};
 let pendingPurchaseProductID = "";
 let pendingRewardedBackdrop = "";
+let nativeRewardedAdStatus = {
+  ready: false,
+  loading: false,
+  configured: false,
+  reason: "",
+};
 let playerTotals = readPlayerTotals();
 let shareResumeGuardUntilMs = 0;
 let backdropUnlocks = readBackdropUnlocks();
@@ -1322,12 +1529,20 @@ function getBackdropBadge(backdrop, unlocked, tempAccess = false) {
   if (BASE_UNLOCKED_BACKDROP_IDS.includes(backdrop)) return "";
   if (unlocked) return "";
   if (tempAccess) return "";
+  if (isLifetimePassOnlyMode()) return "Lifetime Pass";
   if (isBackdropFree(backdrop)) return formatShortBloomTarget(getBackdropUnlockProgress(backdrop).targetBlooms);
   return getBackdropPriceLabel(backdrop);
 }
 
 function syncPostRunUnlockPrompt() {
   if (!postRunUnlockPromptEl || !postRunUnlockTextEl) return;
+  if (!isCustomBackgroundsEnabled() || isLifetimePassOnlyMode() || !isRewardedAdsEnabled()) {
+    postRunUnlockPromptEl.classList.add("screen-hidden");
+    if (postRunUnlockBtn) postRunUnlockBtn.dataset.backdrop = "";
+    if (postRunUnlockPriceEl) postRunUnlockPriceEl.textContent = "";
+    if (postRunUnlockProgressFillEl) postRunUnlockProgressFillEl.style.width = "0%";
+    return;
+  }
   const displayedBlooms = Math.max(0, Math.floor(getDisplayedAccountProgress().blooms));
   const stats = getTemporaryUsageStats();
   const candidate = getNextBackdropUnlockCandidate(stats);
@@ -1390,6 +1605,11 @@ function isBackdropFree(backdrop) {
 }
 
 function isBackdropUnlocked(backdrop) {
+  if (isLifetimePassOnlyMode()) {
+    return BASE_UNLOCKED_BACKDROP_IDS.includes(backdrop)
+      || backdropUnlocks.lifetime
+      || backdropUnlocks.unlocked.includes(backdrop);
+  }
   return BASE_UNLOCKED_BACKDROP_IDS.includes(backdrop)
     || backdropUnlocks.lifetime
     || backdropUnlocks.unlocked.includes(backdrop)
@@ -1397,6 +1617,8 @@ function isBackdropUnlocked(backdrop) {
 }
 
 function isBackdropUsable(backdrop) {
+  if (!BACKDROP_IDS.includes(backdrop)) return false;
+  if (!isCustomBackgroundsEnabled()) return backdrop === "classic";
   return isBackdropUnlocked(backdrop) || hasTemporaryBackdropAccess(backdrop);
 }
 
@@ -1459,8 +1681,10 @@ function recordSessionToLeaderboard(options = {}) {
   if (!usingNativeLeaderboard) {
     leaderboardEntries = localEntries;
   }
-  postNativeGameCenter("submitScore", { score: localEntry.totalBlooms, crates: localEntry.totalCrates });
-  if (usingNativeLeaderboard && refreshNative) {
+  if (shouldShowOnGameCenter()) {
+    postNativeGameCenter("submitScore", { score: localEntry.totalBlooms, crates: localEntry.totalCrates });
+  }
+  if (usingNativeLeaderboard && refreshNative && shouldShowOnGameCenter()) {
     nativeLeaderboardRequested = false;
     requestNativeLeaderboard();
   }
@@ -1499,11 +1723,13 @@ function normalizeNativeLeaderboardEntry(entry) {
 
 function receiveNativeLeaderboard(payload = {}) {
   nativeLeaderboardRequested = false;
-  const nativeEntries = Array.isArray(payload.entries)
-    ? payload.entries.map(normalizeNativeLeaderboardEntry).filter(Boolean)
-    : [];
   nativeLocalPlayerID = typeof payload.localPlayerID === "string" ? payload.localPlayerID : "";
   nativeLocalPlayerName = typeof payload.localPlayerName === "string" ? payload.localPlayerName.trim() : nativeLocalPlayerName;
+  const localEntryIds = new Set([localPlayerProfile.id, nativeLocalPlayerID].filter(Boolean));
+  const nativeEntries = Array.isArray(payload.entries)
+    ? payload.entries.map(normalizeNativeLeaderboardEntry).filter(Boolean)
+      .filter((entry) => shouldShowOnGameCenter() || !localEntryIds.has(entry.id))
+    : [];
 
   if (nativeEntries.length === 0) {
     usingNativeLeaderboard = hasNativeGameCenterBridge();
@@ -1519,16 +1745,26 @@ function receiveNativeLeaderboard(payload = {}) {
   usingNativeLeaderboard = true;
   leaderboardEntries = nativeEntries;
   let nativeLocalBlooms = 0;
-  if (nativeLocalPlayerID) {
-    const localEntry = leaderboardEntries.find((entry) => entry.id === nativeLocalPlayerID);
+  let localEntry = null;
+  if (nativeLocalPlayerID && shouldShowOnGameCenter()) {
+    localEntry = leaderboardEntries.find((entry) => entry.id === nativeLocalPlayerID) || null;
     if (localEntry) {
-      selectedScoreboardEntryId = localEntry.id;
       nativeLocalBlooms = Math.max(0, Math.floor(localEntry.totalBlooms) || 0);
       mergePlayerTotals({
         blooms: localEntry.totalBlooms,
         crates: localEntry.totalCrates,
       });
     }
+  }
+  const preservedSelectedEntry = selectedScoreboardEntryId
+    ? leaderboardEntries.find((entry) => entry.id === selectedScoreboardEntryId)
+    : null;
+  if (preservedSelectedEntry) {
+    selectedScoreboardEntryId = preservedSelectedEntry.id;
+  } else if (localEntry) {
+    selectedScoreboardEntryId = localEntry.id;
+  } else if (leaderboardEntries[0]) {
+    selectedScoreboardEntryId = leaderboardEntries[0].id;
   }
   maybeSubmitStoredTotalsToNative(nativeLocalBlooms);
   sortLeaderboard(leaderboardEntries);
@@ -1543,6 +1779,7 @@ function requestNativeLeaderboard() {
   if (nativeLeaderboardRequested) return;
   nativeLeaderboardRequested = postNativeGameCenter("loadLeaderboard", {
     limit: NATIVE_LEADERBOARD_REQUEST_LIMIT,
+    showLocalPlayer: shouldShowOnGameCenter(),
   });
 }
 
@@ -1578,9 +1815,17 @@ function formatLeaderboardDisplayName(entry, isLocal) {
 }
 
 function buildDisplayLeaderboardEntries() {
+  const localEntryIds = new Set([localPlayerProfile.id, nativeLocalPlayerID].filter(Boolean));
   const displayEntries = leaderboardEntries
     .filter((entry) => shouldUseDemoLeaderboardRows() || !entry.isNpc)
+    .filter((entry) => shouldDisplayLocalLeaderboardEntry() || !localEntryIds.has(entry.id))
     .map((entry) => ({ ...entry }));
+
+  if (!shouldDisplayLocalLeaderboardEntry()) {
+    sortLeaderboard(displayEntries);
+    return displayEntries;
+  }
+
   const localEntryID = nativeLocalPlayerID || localPlayerProfile.id;
   let localEntry = displayEntries.find((entry) => entry.id === localEntryID)
     || displayEntries.find((entry) => entry.id === localPlayerProfile.id);
@@ -1648,7 +1893,9 @@ function renderLeaderboard() {
     ? visibleEntries.filter((entry) => entry.name.toLowerCase().includes(normalizedQuery))
     : visibleEntries;
   const topEntries = matchingEntries.slice(0, MAX_LEADERBOARD_ENTRIES);
-  const localEntryIds = new Set([localPlayerProfile.id, nativeLocalPlayerID].filter(Boolean));
+  const localEntryIds = shouldDisplayLocalLeaderboardEntry()
+    ? new Set([localPlayerProfile.id, nativeLocalPlayerID].filter(Boolean))
+    : new Set();
   const localRank = visibleEntries.findIndex((entry) => localEntryIds.has(entry.id));
   const selectedEntry = matchingEntries.find((entry) => entry.id === selectedScoreboardEntryId)
     || matchingEntries.find((entry) => localEntryIds.has(entry.id))
@@ -1677,7 +1924,7 @@ function renderLeaderboard() {
     item.tabIndex = 0;
     item.setAttribute("role", "button");
     const rank = entry.nativeRank || visibleEntries.findIndex((candidate) => candidate.id === entry.id) + 1;
-    const isLocal = entry.id === localPlayerProfile.id || entry.id === nativeLocalPlayerID;
+    const isLocal = localEntryIds.has(entry.id);
     if (isLocal) {
       item.classList.add("you");
     }
@@ -1717,13 +1964,16 @@ function renderLeaderboard() {
     scoreValueEl.append(scoreNumberEl, scoreLabelEl);
 
     item.append(rankEl, playerEl, scoreValueEl);
-    item.addEventListener("click", safeUiAction("leaderboard row select", () => {
+    item.addEventListener("click", safeUiAction("leaderboard row select", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
       selectedScoreboardEntryId = entry.id;
       renderLeaderboard();
     }));
     item.addEventListener("keydown", safeUiAction("leaderboard row keyboard select", (event) => {
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
+      event.stopPropagation();
       selectedScoreboardEntryId = entry.id;
       renderLeaderboard();
     }));
@@ -1737,12 +1987,30 @@ function renderLeaderboard() {
 }
 
 function getLocalLeaderboardEntry() {
-  const displayEntries = buildDisplayLeaderboardEntries();
+  const localEntryID = nativeLocalPlayerID || localPlayerProfile.id;
+  const displayEntries = leaderboardEntries.map((entry) => ({ ...entry }));
   if (nativeLocalPlayerID) {
     const nativeLocalEntry = displayEntries.find((entry) => entry.id === nativeLocalPlayerID);
-    if (nativeLocalEntry) return nativeLocalEntry;
+    if (nativeLocalEntry) {
+      nativeLocalEntry.name = getLocalLeaderboardName(nativeLocalEntry);
+      const progress = getCurrentSessionLeaderboardProgress();
+      nativeLocalEntry.totalBlooms = Math.max(0, Math.floor(nativeLocalEntry.totalBlooms) || 0, playerTotals.blooms) + progress.blooms;
+      nativeLocalEntry.totalCrates = Math.max(0, Math.floor(nativeLocalEntry.totalCrates) || 0, playerTotals.crates) + progress.crates;
+      return nativeLocalEntry;
+    }
   }
-  return ensurePlayerEntry(displayEntries, localPlayerProfile);
+  const localEntry = displayEntries.find((entry) => entry.id === localPlayerProfile.id) || {
+    id: localEntryID,
+    name: localPlayerProfile.name,
+    totalBlooms: 0,
+    totalCrates: 0,
+    isNpc: false,
+  };
+  const progress = getCurrentSessionLeaderboardProgress();
+  localEntry.name = getLocalLeaderboardName(localEntry);
+  localEntry.totalBlooms = Math.max(0, Math.floor(localEntry.totalBlooms) || 0, playerTotals.blooms) + progress.blooms;
+  localEntry.totalCrates = Math.max(0, Math.floor(localEntry.totalCrates) || 0, playerTotals.crates) + progress.crates;
+  return localEntry;
 }
 
 function buildScoreShareText() {
@@ -1831,9 +2099,11 @@ function showHomeScreen() {
   if (!overlayEl) return;
   overlayEl.classList.remove("hidden");
   overlayEl.classList.add("menu-open");
+  syncCustomBackgroundAvailability();
   homeScreenEl?.classList.remove("screen-hidden");
   leaderboardScreenEl?.classList.add("screen-hidden");
   premiumScreenEl?.classList.add("screen-hidden");
+  settingsScreenEl?.classList.add("screen-hidden");
   setGameUiVisible(false);
   if (overlayTitleEl) overlayTitleEl.textContent = "Bloomwave Garden";
   syncPostRunUnlockPrompt();
@@ -1849,6 +2119,7 @@ function showLeaderboardScreen() {
   homeScreenEl?.classList.add("screen-hidden");
   leaderboardScreenEl?.classList.remove("screen-hidden");
   premiumScreenEl?.classList.add("screen-hidden");
+  settingsScreenEl?.classList.add("screen-hidden");
   setGameUiVisible(false);
   syncPostRunUnlockPrompt();
   syncColorControls();
@@ -1856,14 +2127,33 @@ function showLeaderboardScreen() {
 
 function showPremiumScreen() {
   if (!overlayEl) return;
+  if (!isCustomBackgroundsEnabled()) {
+    showHomeScreen();
+    return;
+  }
   requestNativeProducts();
   overlayEl.classList.remove("hidden");
   overlayEl.classList.add("menu-open");
   homeScreenEl?.classList.add("screen-hidden");
   leaderboardScreenEl?.classList.add("screen-hidden");
   premiumScreenEl?.classList.remove("screen-hidden");
+  settingsScreenEl?.classList.add("screen-hidden");
   setGameUiVisible(false);
+  syncCustomBackgroundAvailability();
   syncBackdropTiles();
+  syncColorControls();
+}
+
+function showSettingsScreen() {
+  if (!overlayEl) return;
+  overlayEl.classList.remove("hidden");
+  overlayEl.classList.add("menu-open");
+  homeScreenEl?.classList.add("screen-hidden");
+  leaderboardScreenEl?.classList.add("screen-hidden");
+  premiumScreenEl?.classList.add("screen-hidden");
+  settingsScreenEl?.classList.remove("screen-hidden");
+  setGameUiVisible(false);
+  syncSettingsControls();
   syncColorControls();
 }
 
@@ -1877,7 +2167,10 @@ function hideMenuOverlay() {
 
 function setGameUiVisible(visible) {
   stageWrapEl?.classList.toggle("is-game-live", visible);
-  const targets = [hudEl, statusEl, menuCornerBtn].filter(Boolean);
+  if (hudEl) {
+    hudEl.classList.toggle("is-hidden", !visible || !shouldShowGameplayHud());
+  }
+  const targets = [statusEl, menuCornerBtn].filter(Boolean);
   for (const target of targets) {
     target.classList.toggle("is-hidden", !visible);
   }
@@ -1901,6 +2194,7 @@ class LofiEngine {
     this.nativeAudioOnly = Boolean(window.__BLOOM_NATIVE_AUDIO_ONLY);
     this.lastDefaultToneAt = -Infinity;
     this.defaultToneCooldown = 0.08;
+    this.effectVolume = 1;
     this.unlockSample = null;
     this.unlockSampleLoading = null;
   }
@@ -1953,13 +2247,14 @@ class LofiEngine {
     if (this.nativeAudioOnly) return false;
     if (!this.context || !this.master) return false;
     if (this.context.state !== "running") return false;
+    if (this.effectVolume <= 0) return false;
 
     const now = this.context.currentTime;
     if (this.unlockSample) {
       const source = this.context.createBufferSource();
       const gain = this.context.createGain();
       source.buffer = this.unlockSample;
-      gain.gain.setValueAtTime(0.34, now);
+      gain.gain.setValueAtTime(0.34 * this.effectVolume, now);
       source.connect(gain);
       gain.connect(this.master);
       source.start(now);
@@ -1980,7 +2275,7 @@ class LofiEngine {
     filter.Q.setValueAtTime(0.9, now);
 
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.22, now + 0.012);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, 0.22 * this.effectVolume), now + 0.012);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
 
     osc.connect(filter);
@@ -2081,6 +2376,7 @@ class LofiEngine {
   canPlay() {
     if (this.nativeAudioOnly) return false;
     if (!this.context || !this.master) return false;
+    if (this.effectVolume <= 0) return false;
     if (this.context.state !== "running") {
       void this.context.resume();
       return false;
@@ -2104,6 +2400,11 @@ class LofiEngine {
     }
   }
 
+  setEffectVolume(volume) {
+    const nextVolume = Number(volume);
+    this.effectVolume = Number.isFinite(nextVolume) ? clamp(nextVolume, 0, 1) : 1;
+  }
+
   toggleMuted() {
     this.setMuted(!this.muted);
   }
@@ -2111,6 +2412,7 @@ class LofiEngine {
   playVoice(freq, duration, type, gainLevel, cutoff) {
     if (!this.context || !this.master) return false;
     if (this.activeVoices >= this.maxVoices) return false;
+    if (this.effectVolume <= 0) return false;
 
     const now = this.context.currentTime;
     const osc = this.context.createOscillator();
@@ -2125,8 +2427,9 @@ class LofiEngine {
 
     const attack = Math.min(0.03, Math.max(0.012, duration * 0.2));
     const release = Math.min(0.16, Math.max(0.06, duration * 0.75));
+    const scaledGainLevel = Math.max(0.0001, gainLevel * this.effectVolume);
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(gainLevel, now + attack);
+    gain.gain.exponentialRampToValueAtTime(scaledGainLevel, now + attack);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + duration + release);
 
     osc.connect(filter);
@@ -2176,11 +2479,12 @@ class LofiEngine {
 }
 
 const lofi = new LofiEngine();
+applyAudioSettings();
 let didRunAudioUnlockPing = false;
 
 function postNativeAudio(event, payload = {}) {
   const webAudioState = lofi.context ? lofi.context.state : "no-context";
-  const shouldBridge = lofi.nativeAudioOnly || webAudioState !== "running" || event === "gesture";
+  const shouldBridge = lofi.nativeAudioOnly || webAudioState !== "running" || event === "gesture" || event === "settings";
   if (!shouldBridge) return;
 
   const handler = window.webkit && window.webkit.messageHandlers
@@ -2194,6 +2498,7 @@ function postNativeAudio(event, payload = {}) {
       event,
       webAudioState,
       nativeAudioOnly: Boolean(lofi.nativeAudioOnly),
+      effectVolume: appSettings.tapEffectVolume,
       ...payload,
     });
   } catch {
@@ -2220,7 +2525,7 @@ function postNativeGameCenter(event, payload = {}) {
 }
 
 function hasNativePurchaseBridge() {
-  return Boolean(window.webkit?.messageHandlers?.nativePurchase);
+  return isPurchaseUiEnabled() && Boolean(window.webkit?.messageHandlers?.nativePurchase);
 }
 
 function postNativePurchase(event, payload = {}) {
@@ -2242,7 +2547,7 @@ function postNativePurchase(event, payload = {}) {
 }
 
 function hasNativeAdBridge() {
-  return Boolean(window.webkit?.messageHandlers?.nativeRewardedAd);
+  return isRewardedAdsEnabled() && Boolean(window.webkit?.messageHandlers?.nativeRewardedAd);
 }
 
 function postNativeAd(event, payload = {}) {
@@ -2263,15 +2568,66 @@ function postNativeAd(event, payload = {}) {
   }
 }
 
+function requestNativeRewardedAdStatus() {
+  if (!hasNativeAdBridge()) return false;
+  return postNativeAd("getRewardedBackdropAdStatus", {});
+}
+
 function receiveNativeAdResult(payload = {}) {
   const status = typeof payload.status === "string" ? payload.status : "";
   const backdrop = typeof payload.backdrop === "string" ? payload.backdrop : pendingRewardedBackdrop;
+  const reason = typeof payload.reason === "string" ? payload.reason.trim() : "";
+  if (status === "status") {
+    nativeRewardedAdStatus = {
+      ready: payload.ready === true,
+      loading: payload.loading === true,
+      configured: payload.configured === true,
+      reason,
+    };
+    if (!backgroundPreviewModalEl?.classList.contains("screen-hidden") && selectedLockedBackdrop) {
+      syncBackgroundPreviewAdButton(selectedLockedBackdrop);
+    }
+    return;
+  }
   pendingRewardedBackdrop = "";
+  nativeRewardedAdStatus = {
+    ...nativeRewardedAdStatus,
+    ready: false,
+    loading: false,
+    reason,
+  };
   if (status !== "rewarded" || !BACKDROP_IDS.includes(backdrop)) {
-    if (backgroundPreviewAdBtn) backgroundPreviewAdBtn.textContent = "Ad Unavailable";
+    if (backgroundPreviewAdBtn) {
+      backgroundPreviewAdBtn.textContent = status === "dismissed" ? "Ad Dismissed" : "Retry Ad Load";
+      backgroundPreviewAdBtn.disabled = false;
+      backgroundPreviewAdBtn.title = reason || "";
+    }
+    if (backgroundPreviewRemainingEl) {
+      backgroundPreviewRemainingEl.textContent = reason || (status === "dismissed" ? "Ad dismissed before reward." : "Rewarded ad unavailable.");
+      backgroundPreviewRemainingEl.classList.remove("is-hidden");
+      backgroundPreviewRemainingEl.classList.add("is-error");
+    }
+    if (reason) {
+      console.warn("[Bloomwave] Rewarded ad unavailable:", reason);
+      setStatus(reason, 3.2);
+    }
+    requestNativeRewardedAdStatus();
     return;
   }
   grantTemporaryBackdropAccess(backdrop, REWARDED_BACKDROP_ACCESS_HOURS);
+  nativeRewardedAdStatus = {
+    ...nativeRewardedAdStatus,
+    ready: false,
+    loading: false,
+    reason: "",
+  };
+  if (backgroundPreviewAdBtn) {
+    backgroundPreviewAdBtn.disabled = false;
+    backgroundPreviewAdBtn.title = "";
+  }
+  if (backgroundPreviewRemainingEl) {
+    backgroundPreviewRemainingEl.classList.remove("is-error");
+  }
 }
 
 window.bloomwaveNativeAds = {
@@ -2281,7 +2637,9 @@ window.bloomwaveNativeAds = {
 function requestNativeProducts() {
   if (nativeProductsRequested || !hasNativePurchaseBridge()) return;
   nativeProductsRequested = postNativePurchase("loadProducts", {
-    productIDs: [LIFETIME_PRODUCT_ID, ...Object.values(BACKDROP_PRODUCT_IDS)],
+    productIDs: isLifetimePassOnlyMode()
+      ? [LIFETIME_PRODUCT_ID]
+      : [LIFETIME_PRODUCT_ID, ...Object.values(BACKDROP_PRODUCT_IDS)],
   });
 }
 
@@ -2356,6 +2714,7 @@ window.bloomwaveNativePurchases = {
 
 function purchaseProduct(productID, fallbackUnlock) {
   if (!productID) return false;
+  if (!isPurchaseUiEnabled()) return false;
   if (hasNativePurchaseBridge()) {
     pendingPurchaseProductID = productID;
     postNativePurchase("purchase", { productID });
@@ -2367,6 +2726,10 @@ function purchaseProduct(productID, fallbackUnlock) {
 
 function purchaseBackdrop(backdrop) {
   if (!BACKDROP_IDS.includes(backdrop) || isBackdropUnlocked(backdrop)) return;
+  if (isLifetimePassOnlyMode()) {
+    purchaseLifetimePass();
+    return;
+  }
   const productID = BACKDROP_PRODUCT_IDS[backdrop];
   purchaseProduct(productID, () => {
     unlockBackdrop(backdrop);
@@ -2383,19 +2746,26 @@ function purchaseLifetimePass() {
 }
 
 function watchAdForBackdrop(backdrop) {
-  if (!BACKDROP_IDS.includes(backdrop) || backdrop === "classic" || isBackdropUnlocked(backdrop)) return;
+  if (!isCustomBackgroundsEnabled() || !isRewardedAdsEnabled() || !BACKDROP_IDS.includes(backdrop) || backdrop === "classic" || isBackdropUnlocked(backdrop)) return;
   pendingRewardedBackdrop = backdrop;
   if (backgroundPreviewAdBtn) {
     backgroundPreviewAdBtn.textContent = "Loading Ad...";
     backgroundPreviewAdBtn.disabled = true;
   }
+  nativeRewardedAdStatus = {
+    ...nativeRewardedAdStatus,
+    loading: true,
+  };
   if (hasNativeAdBridge() && postNativeAd("showRewardedBackdropAd", {
     backdrop,
     hours: REWARDED_BACKDROP_ACCESS_HOURS,
   })) {
     return;
   }
-  grantTemporaryBackdropAccess(backdrop, REWARDED_BACKDROP_ACCESS_HOURS);
+  receiveNativeAdResult({
+    status: "unavailable",
+    backdrop,
+  });
 }
 
 function setStatus(text, seconds = 1.6) {
@@ -4858,6 +5228,12 @@ if (premiumBackBtn) {
   }));
 }
 
+if (settingsBackBtn) {
+  settingsBackBtn.addEventListener("click", safeUiAction("settings back", () => {
+    showHomeScreen();
+  }));
+}
+
 if (unlockBackgroundsBtn) {
   unlockBackgroundsBtn.addEventListener("click", safeUiAction("background unlock", () => {
     const backdrop = unlockBackgroundsBtn.dataset.backdrop || selectedLockedBackdrop;
@@ -4964,21 +5340,63 @@ if (menuCornerBtn) {
   }));
 }
 
+if (settingsCornerBtn) {
+  settingsCornerBtn.addEventListener("click", safeUiAction("settings open", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    state.running = false;
+    showSettingsScreen();
+  }));
+}
+
+if (tapVolumeInput) {
+  tapVolumeInput.addEventListener("input", safeUiAction("tap volume input", () => {
+    updateGameSettings({
+      tapEffectVolume: Number(tapVolumeInput.value) / 100,
+    });
+  }));
+}
+
+if (gameCenterVisibilityToggle) {
+  gameCenterVisibilityToggle.addEventListener("change", safeUiAction("game center visibility", () => {
+    updateGameSettings({
+      showOnGameCenter: gameCenterVisibilityToggle.checked,
+    });
+  }));
+}
+
+if (gameplayHudToggle) {
+  gameplayHudToggle.addEventListener("change", safeUiAction("gameplay hud visibility", () => {
+    updateGameSettings({
+      showGameplayHud: gameplayHudToggle.checked,
+    });
+    setGameUiVisible(overlayEl?.classList.contains("hidden") ?? false);
+  }));
+}
+
+
 function initializeGame() {
   try {
     resizeGameSurface();
     if (bedSlots.length === 0) {
       rebuildBedSlots();
     }
-    state.backdrop = readBackdropPreference();
+    const storedBackdrop = readBackdropPreference();
+    state.backdrop = normalizeBackdropPreference(storedBackdrop);
+    if (state.backdrop !== storedBackdrop) {
+      writeBackdropPreference(state.backdrop);
+    }
     if (!isBackdropUsable(state.backdrop)) {
       state.backdrop = "classic";
       writeBackdropPreference(state.backdrop);
     }
     state.backdropColor = readBackdropColorPreference();
     requestNativeLeaderboard();
-    requestNativeProducts();
-    requestNativeEntitlements();
+    if (isCustomBackgroundsEnabled()) {
+      requestNativeProducts();
+      requestNativeEntitlements();
+    }
+    syncCustomBackgroundAvailability();
     syncBackdropTiles();
     if (shouldSkipMenuForFirstStart()) {
       startSession();

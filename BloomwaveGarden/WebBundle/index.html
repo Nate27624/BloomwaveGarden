@@ -7,6 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title>Bloomwave Garden</title>
+    <link rel="icon" type="image/svg+xml" href="assets/ui/settings-gear.svg" />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
@@ -20,7 +21,10 @@
         <canvas id="game" width="960" height="540" aria-label="Bloomwave Garden game area"></canvas>
 
         <div id="overlay" class="overlay">
-          <section id="home-screen" class="menu-panel">
+          <section id="home-screen" class="menu-panel home-screen-panel">
+            <button id="settings-corner-btn" class="menu-settings-btn" type="button" aria-label="Open settings">
+              <img class="settings-corner-icon" src="assets/ui/settings-gear.svg" alt="" />
+            </button>
             <h2 id="overlay-title">Bloomwave Garden</h2>
             <div class="menu-actions">
               <button id="play-btn" type="button" class="menu-btn menu-icon-btn play-btn" aria-label="Play">
@@ -38,7 +42,7 @@
                   <rect x="4" y="13" width="8" height="1" fill="#2d1b0d"></rect>
                 </svg>
               </button>
-              <button id="custom-bg-btn" type="button" class="menu-btn menu-icon-btn premium-btn" aria-label="Custom backgrounds">
+              <button id="custom-bg-btn" type="button" class="menu-btn menu-icon-btn premium-btn" aria-label="Custom backgrounds" hidden aria-hidden="true">
                 <svg class="menu-icon" viewBox="0 0 16 16" aria-hidden="true">
                   <rect x="2" y="3" width="12" height="10" fill="#213a45"></rect>
                   <rect x="3" y="4" width="10" height="8" fill="#76d9cf"></rect>
@@ -146,6 +150,41 @@
             </div>
             <div class="menu-actions single-action">
               <button id="premium-back-btn" type="button" class="menu-btn">Back</button>
+            </div>
+          </section>
+
+          <section id="settings-screen" class="menu-panel screen-hidden">
+            <h2>Settings</h2>
+            <div class="settings-list">
+              <label class="settings-row" for="tap-volume-input">
+                <span>
+                  <strong>Tap Sound</strong>
+                  <small>Harvest effect volume</small>
+                </span>
+                <div class="settings-slider-row">
+                  <input id="tap-volume-input" class="settings-slider" type="range" min="0" max="100" step="5" value="100" />
+                  <output id="tap-volume-value" class="settings-value" for="tap-volume-input">100%</output>
+                </div>
+              </label>
+              <label class="settings-toggle" for="game-center-visibility-toggle">
+                <span>
+                  <strong>Game Center</strong>
+                  <small>Show on leaderboard and submit scores</small>
+                </span>
+                <input id="game-center-visibility-toggle" type="checkbox" checked />
+                <span class="toggle-ui" aria-hidden="true"></span>
+              </label>
+              <label class="settings-toggle" for="gameplay-hud-toggle">
+                <span>
+                  <strong>Score Display</strong>
+                  <small>Show Blooms, Harvest, and Crates</small>
+                </span>
+                <input id="gameplay-hud-toggle" type="checkbox" checked />
+                <span class="toggle-ui" aria-hidden="true"></span>
+              </label>
+            </div>
+            <div class="menu-actions single-action">
+              <button id="settings-back-btn" type="button" class="menu-btn">Back</button>
             </div>
           </section>
 

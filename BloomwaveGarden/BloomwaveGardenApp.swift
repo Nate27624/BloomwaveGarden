@@ -4,6 +4,36 @@ import StoreKit
 import SwiftUI
 import UIKit
 
+enum AppFeatures {
+  static let inAppPurchasesEnabled = boolValue(forInfoDictionaryKey: "BloomwaveInAppPurchasesEnabled", defaultValue: true)
+  static let rewardedAdsEnabled = boolValue(forInfoDictionaryKey: "BloomwaveRewardedAdsEnabled", defaultValue: true)
+  static let lifetimePassOnlyBackgroundStoreEnabled = boolValue(
+    forInfoDictionaryKey: "BloomwaveLifetimePassOnlyBackgroundStoreEnabled",
+    defaultValue: false
+  )
+
+  private static func boolValue(forInfoDictionaryKey key: String, defaultValue: Bool) -> Bool {
+    let rawValue = Bundle.main.object(forInfoDictionaryKey: key)
+    if let boolValue = rawValue as? Bool {
+      return boolValue
+    }
+    if let numberValue = rawValue as? NSNumber {
+      return numberValue.boolValue
+    }
+    if let stringValue = rawValue as? String {
+      switch stringValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+      case "1", "true", "yes":
+        return true
+      case "0", "false", "no":
+        return false
+      default:
+        break
+      }
+    }
+    return defaultValue
+  }
+}
+
 @MainActor
 final class GameCenterService: NSObject, @preconcurrency GKGameCenterControllerDelegate {
   static let shared = GameCenterService()
@@ -214,8 +244,8 @@ final class GameCenterService: NSObject, @preconcurrency GKGameCenterControllerD
 final class PurchaseService {
   static let shared = PurchaseService()
 
-  private let knownProductIDs: Set<String> = [
-    "com.nate27624.bloomwavegarden.backgrounds.lifetime",
+  private let lifetimeProductID = "com.nate27624.bloomwavegarden.backgrounds.lifetime"
+  private let individualBackgroundProductIDs: Set<String> = [
     "com.nate27624.bloomwavegarden.background.citylight",
     "com.nate27624.bloomwavegarden.background.moonlitfalls",
     "com.nate27624.bloomwavegarden.background.emberfield",
@@ -225,6 +255,12 @@ final class PurchaseService {
     "com.nate27624.bloomwavegarden.background.frostmeadow",
     "com.nate27624.bloomwavegarden.background.azurereef",
   ]
+  private var knownProductIDs: Set<String> {
+    if AppFeatures.lifetimePassOnlyBackgroundStoreEnabled {
+      return [lifetimeProductID]
+    }
+    return individualBackgroundProductIDs.union([lifetimeProductID])
+  }
 
   private var productsByID: [String: Product] = [:]
   private var transactionUpdatesTask: Task<Void, Never>?
@@ -382,7 +418,12 @@ private final class AppDelegate: NSObject, UIApplicationDelegate {
     }
     Task { @MainActor in
       GameCenterService.shared.authenticateLocalPlayerIfNeeded()
-      PurchaseService.shared.startObservingTransactions()
+      if AppFeatures.inAppPurchasesEnabled {
+        PurchaseService.shared.startObservingTransactions()
+      }
+      if AppFeatures.rewardedAdsEnabled {
+        RewardedAdService.shared.configureIfNeeded()
+      }
     }
     return true
   }

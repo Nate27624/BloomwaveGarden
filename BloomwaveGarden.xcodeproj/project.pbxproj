@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -18,6 +18,8 @@
 		5FCCA739C11DBC61CED8C43D /* BloomwaveGardenApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DFD08AD47087EE0BC496A4C /* BloomwaveGardenApp.swift */; };
 		6EC3BA28BA887A6B78D2D7EE /* bloom-amber.png in Resources */ = {isa = PBXBuildFile; fileRef = 626CC97C6F5F93940943925C /* bloom-amber.png */; };
 		84B007E659E69B8EEE3FEEA0 /* WebBundle in Resources */ = {isa = PBXBuildFile; fileRef = 9774D7F50E0A99A2FF25B58E /* WebBundle */; };
+		939B612823E337A3B5DF9661 /* RewardedAdService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B848C2392722699B1745BD01 /* RewardedAdService.swift */; };
+		989CF0EAB1ED5779BFE50C10 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = D2AD54113ACCF0CA40047590 /* GoogleMobileAds */; };
 		9CF68B0633B56337B141D372 /* spirit-amber.png in Resources */ = {isa = PBXBuildFile; fileRef = 198510CF5399579EB41AA6AF /* spirit-amber.png */; };
 		AB172A1AB673160747562D5F /* flower-amber.png in Resources */ = {isa = PBXBuildFile; fileRef = 1F0D9D5D7D78069DA06698F0 /* flower-amber.png */; };
 		B4C354E11D0F528A77115D14 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 23622F48548C138825B826BD /* Assets.xcassets */; };
@@ -33,7 +35,7 @@
 		1F0D9D5D7D78069DA06698F0 /* flower-amber.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "flower-amber.png"; sourceTree = "<group>"; };
 		22FCF81E9E45CE615EC10653 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		23622F48548C138825B826BD /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		2B8F21659D1E4F49A0E4C901 /* BloomwaveGarden.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BloomwaveGarden.entitlements; sourceTree = "<group>"; };
+		3795D3D24132264EF2D728F6 /* BloomwaveGarden.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BloomwaveGarden.entitlements; sourceTree = "<group>"; };
 		3859313DEBB13A20B813B5F4 /* bloom-teal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "bloom-teal.png"; sourceTree = "<group>"; };
 		3BFB2D8DCDC7382498651D96 /* flower-teal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "flower-teal.png"; sourceTree = "<group>"; };
 		3C8B8AC1799AE23C359A9232 /* GardenScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GardenScene.swift; sourceTree = "<group>"; };
@@ -43,13 +45,25 @@
 		9496EE90F49B1DA72A7770E3 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		9774D7F50E0A99A2FF25B58E /* WebBundle */ = {isa = PBXFileReference; lastKnownFileType = folder; name = WebBundle; path = BloomwaveGarden/WebBundle; sourceTree = SOURCE_ROOT; };
 		9E3C0FE3EF6D6382076C77D1 /* GameHUDModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameHUDModel.swift; sourceTree = "<group>"; };
+		B848C2392722699B1745BD01 /* RewardedAdService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RewardedAdService.swift; sourceTree = "<group>"; };
 		C73548E7227D3ACA04CBBBA1 /* LofiAudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LofiAudioEngine.swift; sourceTree = "<group>"; };
 		C7DDC4B57BB913FED07E8058 /* spirit-teal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "spirit-teal.png"; sourceTree = "<group>"; };
 		E292D08A4CE50F7CDC811A84 /* bed.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = bed.png; sourceTree = "<group>"; };
 		EF43C79DD2A0906FEA71176E /* sprout-1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "sprout-1.png"; sourceTree = "<group>"; };
 		F492C5687E5F41F037D2C4C1 /* sprout-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "sprout-2.png"; sourceTree = "<group>"; };
-		F98D04F52D4E50F662F3D6E3 /* BloomwaveGarden.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BloomwaveGarden.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F98D04F52D4E50F662F3D6E3 /* BloomwaveGarden.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = BloomwaveGarden.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		45F020EC08D7787F153510DC /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				989CF0EAB1ED5779BFE50C10 /* GoogleMobileAds in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		12783E2F57D3537D32198BFA /* SpriteTextures */ = {
@@ -81,13 +95,14 @@
 			isa = PBXGroup;
 			children = (
 				23622F48548C138825B826BD /* Assets.xcassets */,
-				2B8F21659D1E4F49A0E4C901 /* BloomwaveGarden.entitlements */,
+				3795D3D24132264EF2D728F6 /* BloomwaveGarden.entitlements */,
 				1DFD08AD47087EE0BC496A4C /* BloomwaveGardenApp.swift */,
 				9496EE90F49B1DA72A7770E3 /* ContentView.swift */,
 				9E3C0FE3EF6D6382076C77D1 /* GameHUDModel.swift */,
 				3C8B8AC1799AE23C359A9232 /* GardenScene.swift */,
 				22FCF81E9E45CE615EC10653 /* Info.plist */,
 				C73548E7227D3ACA04CBBBA1 /* LofiAudioEngine.swift */,
+				B848C2392722699B1745BD01 /* RewardedAdService.swift */,
 				443114265130400987CF9640 /* WebGameView.swift */,
 				12783E2F57D3537D32198BFA /* SpriteTextures */,
 			);
@@ -112,6 +127,7 @@
 			buildPhases = (
 				8E8B69ABBD9B371C95F602B3 /* Sources */,
 				D460E82E5F544DF403B2A65F /* Resources */,
+				45F020EC08D7787F153510DC /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -119,6 +135,7 @@
 			);
 			name = BloomwaveGarden;
 			packageProductDependencies = (
+				D2AD54113ACCF0CA40047590 /* GoogleMobileAds */,
 			);
 			productName = BloomwaveGarden;
 			productReference = F98D04F52D4E50F662F3D6E3 /* BloomwaveGarden.app */;
@@ -134,6 +151,7 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					685365FC7AB96CA914E15A77 = {
+						DevelopmentTeam = 4QJKW5H6GB;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -148,6 +166,10 @@
 			);
 			mainGroup = F43E58C4A6C7B68EABC20180;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				6D2B10F9406B9E2C4AA55E2A /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
+			);
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -188,6 +210,7 @@
 				3C426BAD367F869BF76BA60C /* GameHUDModel.swift in Sources */,
 				104AF98DD00F172F32D2E8F0 /* GardenScene.swift in Sources */,
 				2DD5B29D9BF5EF26BDED9FAD /* LofiAudioEngine.swift in Sources */,
+				939B612823E337A3B5DF9661 /* RewardedAdService.swift in Sources */,
 				3208A563A28788B5790C9985 /* WebGameView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -254,12 +277,17 @@
 		9668F93F16B4B9AD3F79C8AD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ADMOB_APP_ID = "ca-app-pub-5407528260600092~4304575035";
+				ADMOB_REWARDED_AD_UNIT_ID = "ca-app-pub-5407528260600092/7073831309";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				BLOOMWAVE_ENABLE_IN_APP_PURCHASES = YES;
+				BLOOMWAVE_ENABLE_REWARDED_ADS = NO;
+				BLOOMWAVE_LIFETIME_PASS_ONLY_BACKGROUNDS = YES;
 				CODE_SIGN_ENTITLEMENTS = BloomwaveGarden/BloomwaveGarden.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = 4QJKW5H6GB;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = BloomwaveGarden/Info.plist;
@@ -268,7 +296,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.nate27624.bloomwavegarden;
 				PRODUCT_NAME = BloomwaveGarden;
 				SDKROOT = iphoneos;
@@ -343,12 +371,17 @@
 		C1B6F29D780E060D0758D940 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ADMOB_APP_ID = "ca-app-pub-5407528260600092~4304575035";
+				ADMOB_REWARDED_AD_UNIT_ID = "ca-app-pub-5407528260600092/7073831309";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				BLOOMWAVE_ENABLE_IN_APP_PURCHASES = YES;
+				BLOOMWAVE_ENABLE_REWARDED_ADS = NO;
+				BLOOMWAVE_LIFETIME_PASS_ONLY_BACKGROUNDS = YES;
 				CODE_SIGN_ENTITLEMENTS = BloomwaveGarden/BloomwaveGarden.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = 4QJKW5H6GB;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = BloomwaveGarden/Info.plist;
@@ -357,7 +390,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.nate27624.bloomwavegarden;
 				PRODUCT_NAME = BloomwaveGarden;
 				SDKROOT = iphoneos;
@@ -388,6 +421,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		6D2B10F9406B9E2C4AA55E2A /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 13.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D2AD54113ACCF0CA40047590 /* GoogleMobileAds */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6D2B10F9406B9E2C4AA55E2A /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
+			productName = GoogleMobileAds;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = CCE9E02346A55460794FC2B9 /* Project object */;
 }

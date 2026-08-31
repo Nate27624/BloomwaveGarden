@@ -6,6 +6,10 @@ options:
 configs:
   Debug: debug
   Release: release
+packages:
+  GoogleMobileAds:
+    url: https://github.com/googleads/swift-package-manager-google-mobile-ads.git
+    from: 13.0.0
 targets:
   BloomwaveGarden:
     type: application
@@ -30,7 +34,15 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_STYLE: Automatic
-        CURRENT_PROJECT_VERSION: 1
-        MARKETING_VERSION: 1.0
+        DEVELOPMENT_TEAM: 4QJKW5H6GB
+        CURRENT_PROJECT_VERSION: 3
+        MARKETING_VERSION: 0.0.1
+        BLOOMWAVE_ENABLE_IN_APP_PURCHASES: YES
+        BLOOMWAVE_ENABLE_REWARDED_ADS: NO
+        BLOOMWAVE_LIFETIME_PASS_ONLY_BACKGROUNDS: YES
+        ADMOB_APP_ID: ca-app-pub-5407528260600092~4304575035
+        ADMOB_REWARDED_AD_UNIT_ID: ca-app-pub-5407528260600092/7073831309
+    dependencies:
+      - package: GoogleMobileAds
     scheme:
       testTargets: []

@@ -14,6 +14,7 @@ final class LofiAudioEngine {
   private var nextPlayerIndex: Int = 0
   private var sessionConfigured = false
   private var didLogReadyState = false
+  private var effectVolume: Float = 1
 
   private(set) var started: Bool = false
   private(set) var muted: Bool = true
@@ -68,7 +69,7 @@ final class LofiAudioEngine {
 
   func setMuted(_ nextMuted: Bool) {
     muted = nextMuted
-    let volume = muted ? 0 : unmutedOutputVolume
+    let volume = muted ? 0 : unmutedOutputVolume * effectVolume
 
     for player in players {
       player.volume = volume
@@ -83,6 +84,16 @@ final class LofiAudioEngine {
     setMuted(!muted)
     if !muted {
       _ = playDefaultTone(force: true)
+    }
+  }
+
+  func setEffectVolume(_ nextEffectVolume: Float) {
+    effectVolume = min(max(nextEffectVolume, 0), 1)
+
+    guard !players.isEmpty else { return }
+    let volume = muted ? 0 : unmutedOutputVolume * effectVolume
+    for player in players {
+      player.volume = volume
     }
   }
 
@@ -156,7 +167,7 @@ final class LofiAudioEngine {
     for _ in 0..<playerPoolSize {
       let player = try AVAudioPlayer(contentsOf: sampleURL)
       player.numberOfLoops = 0
-      player.volume = muted ? 0 : unmutedOutputVolume
+      player.volume = muted ? 0 : unmutedOutputVolume * effectVolume
       player.prepareToPlay()
       loaded.append(player)
     }
@@ -202,7 +213,7 @@ final class LofiAudioEngine {
     }
 
     player.currentTime = 0
-    player.volume = muted ? 0 : unmutedOutputVolume
+    player.volume = muted ? 0 : unmutedOutputVolume * effectVolume
     let ok = player.play()
     #if DEBUG
     if !ok {

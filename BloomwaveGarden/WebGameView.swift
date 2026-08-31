@@ -47,6 +47,8 @@ struct WebGameView: UIViewRepresentable {
         handleNativeShare(event: event, payload: payload)
       case "nativePurchase":
         handleNativePurchase(event: event, payload: payload)
+      case "nativeRewardedAd":
+        handleNativeRewardedAd(event: event, payload: payload)
       default:
         break
       }
@@ -100,8 +102,9 @@ struct WebGameView: UIViewRepresentable {
           GameCenterService.shared.submitProgressScore(score, crates: crates)
         case "loadLeaderboard":
           let limit = self.intValue(payload["limit"])
+          let showLocalPlayer = payload["showLocalPlayer"] == nil ? true : self.boolValue(payload["showLocalPlayer"])
           GameCenterService.shared.loadLeaderboardEntries(limit: limit > 0 ? limit : 10) { entries in
-            self.sendLeaderboardEntriesToWeb(entries)
+            self.sendLeaderboardEntriesToWeb(entries, showLocalPlayer: showLocalPlayer)
           }
         default:
           break
@@ -109,12 +112,17 @@ struct WebGameView: UIViewRepresentable {
       }
     }
 
-    private func sendLeaderboardEntriesToWeb(_ entries: [[String: Any]]) {
+    private func sendLeaderboardEntriesToWeb(_ entries: [[String: Any]], showLocalPlayer: Bool = true) {
+      let localPlayerID = GKLocalPlayer.local.gamePlayerID
+      let filteredEntries = showLocalPlayer ? entries : entries.filter { entry in
+        self.stringValue(entry["id"]) != localPlayerID
+          && self.stringValue(entry["playerID"]) != localPlayerID
+      }
       let payload: [String: Any] = [
-        "entries": entries,
-        "localPlayerID": GKLocalPlayer.local.gamePlayerID,
+        "entries": filteredEntries,
+        "localPlayerID": localPlayerID,
         "localPlayerName": GKLocalPlayer.local.displayName,
-        "available": !entries.isEmpty,
+        "available": !filteredEntries.isEmpty,
       ]
 
       guard JSONSerialization.isValidJSONObject(payload),
@@ -166,9 +174,46 @@ struct WebGameView: UIViewRepresentable {
       webView?.evaluateJavaScript(script)
     }
 
+    private func handleNativeRewardedAd(event: String, payload: [String: Any]) {
+      DispatchQueue.main.async {
+        switch event {
+        case "showRewardedBackdropAd":
+          let backdrop = self.stringValue(payload["backdrop"])
+          guard !backdrop.isEmpty else {
+            self.sendRewardedAdPayload([
+              "status": "unavailable",
+            ])
+            return
+          }
+          RewardedAdService.shared.presentRewardedAd(backdrop: backdrop) { result in
+            self.sendRewardedAdPayload(result)
+          }
+        case "getRewardedBackdropAdStatus":
+          RewardedAdService.shared.refreshAvailability()
+          var statusPayload = RewardedAdService.shared.currentStatusPayload()
+          statusPayload["status"] = "status"
+          self.sendRewardedAdPayload(statusPayload)
+        default:
+          break
+        }
+      }
+    }
+
+    private func sendRewardedAdPayload(_ payload: [String: Any]) {
+      guard JSONSerialization.isValidJSONObject(payload),
+            let data = try? JSONSerialization.data(withJSONObject: payload),
+            let json = String(data: data, encoding: .utf8) else {
+        return
+      }
+
+      let script = "window.bloomwaveNativeAds && window.bloomwaveNativeAds.receiveReward(\(json));"
+      webView?.evaluateJavaScript(script)
+    }
+
     private func handleNativeAudio(event: String, payload: [String: Any]) {
       let webAudioState = stringValue(payload["webAudioState"])
       let nativeAudioOnly = boolValue(payload["nativeAudioOnly"])
+      let effectVolume = Float(doubleValue(payload["effectVolume"]))
       let which = intValue(payload["which"])
       let combo = intValue(payload["combo"])
       let hitCount = intValue(payload["hitCount"])
@@ -185,6 +230,7 @@ struct WebGameView: UIViewRepresentable {
       DispatchQueue.main.async {
         self.lastBridgeMessageAt = CACurrentMediaTime()
         let nativeAudio = LofiAudioEngine.shared
+        nativeAudio.setEffectVolume(effectVolume)
 
         if event == "gesture" {
           guard nativeAudioOnly || webAudioState != "running" else {
@@ -196,6 +242,10 @@ struct WebGameView: UIViewRepresentable {
           if nativeAudio.muted {
             nativeAudio.setMuted(false)
           }
+          return
+        }
+
+        if event == "settings" {
           return
         }
 
@@ -291,6 +341,9 @@ struct WebGameView: UIViewRepresentable {
   private let webAudioUnlockScript = """
   (() => {
     window.__BLOOM_NATIVE_AUDIO_ONLY = true;
+    window.__BLOOM_IAP_ENABLED = \(AppFeatures.inAppPurchasesEnabled ? "true" : "false");
+    window.__BLOOM_REWARDED_ADS_ENABLED = \(AppFeatures.rewardedAdsEnabled ? "true" : "false");
+    window.__BLOOM_LIFETIME_PASS_ONLY = \(AppFeatures.lifetimePassOnlyBackgroundStoreEnabled ? "true" : "false");
   })();
   """
 
@@ -337,7 +390,12 @@ struct WebGameView: UIViewRepresentable {
     userContentController.add(context.coordinator, name: "nativeAudio")
     userContentController.add(context.coordinator, name: "nativeGameCenter")
     userContentController.add(context.coordinator, name: "nativeShare")
-    userContentController.add(context.coordinator, name: "nativePurchase")
+    if AppFeatures.inAppPurchasesEnabled {
+      userContentController.add(context.coordinator, name: "nativePurchase")
+    }
+    if AppFeatures.inAppPurchasesEnabled && AppFeatures.rewardedAdsEnabled && RewardedAdService.shared.isConfigured {
+      userContentController.add(context.coordinator, name: "nativeRewardedAd")
+    }
     config.userContentController = userContentController
 
     let webView = WKWebView(frame: .zero, configuration: config)
@@ -375,6 +433,7 @@ struct WebGameView: UIViewRepresentable {
     uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeGameCenter")
     uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeShare")
     uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativePurchase")
+    uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeRewardedAd")
     coordinator.webView = nil
   }
 

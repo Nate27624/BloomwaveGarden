@@ -16,14 +16,31 @@
   <string>$(PRODUCT_NAME)</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
+  <key>GADApplicationIdentifier</key>
+  <string>$(ADMOB_APP_ID)</string>
   <key>CFBundleShortVersionString</key>
   <string>$(MARKETING_VERSION)</string>
   <key>CFBundleVersion</key>
   <string>$(CURRENT_PROJECT_VERSION)</string>
+  <key>BloomwaveRewardedAdUnitID</key>
+  <string>$(ADMOB_REWARDED_AD_UNIT_ID)</string>
+  <key>BloomwaveInAppPurchasesEnabled</key>
+  <string>$(BLOOMWAVE_ENABLE_IN_APP_PURCHASES)</string>
+  <key>BloomwaveRewardedAdsEnabled</key>
+  <string>$(BLOOMWAVE_ENABLE_REWARDED_ADS)</string>
+  <key>BloomwaveLifetimePassOnlyBackgroundStoreEnabled</key>
+  <string>$(BLOOMWAVE_LIFETIME_PASS_ONLY_BACKGROUNDS)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>GameCenterLeaderboardID</key>
 	<string>com.nate27624.bloomwavegarden.total_blooms</string>
+  <key>SKAdNetworkItems</key>
+  <array>
+    <dict>
+      <key>SKAdNetworkIdentifier</key>
+      <string>cstr6suwn9.skadnetwork</string>
+    </dict>
+  </array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
     <key>UIApplicationSupportsMultipleScenes</key>
