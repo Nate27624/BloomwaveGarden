@@ -206,10 +206,18 @@ struct WebGameView: UIViewRepresentable {
     }
 
     private func handleNativeAnalytics(event: String, payload: [String: Any]) {
-      guard event == "track" else { return }
-      guard let analyticsPayload = payload["payload"] as? [String: Any] else { return }
-      Task {
-        await SupabaseAnalyticsService.shared.track(payload: analyticsPayload)
+      switch event {
+      case "track":
+        guard let analyticsPayload = payload["payload"] as? [String: Any] else { return }
+        Task {
+          await SupabaseAnalyticsService.shared.track(payload: analyticsPayload)
+        }
+      case "flush":
+        Task {
+          await SupabaseAnalyticsService.shared.flush()
+        }
+      default:
+        return
       }
     }
 

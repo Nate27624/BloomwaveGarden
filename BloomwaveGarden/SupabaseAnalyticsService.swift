@@ -23,7 +23,7 @@ enum SupabaseAnalyticsConfig {
     let trimmed = AppFeatures.supabaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !trimmed.isEmpty, var components = URLComponents(string: trimmed) else { return nil }
     let path = components.path.hasSuffix("/") ? components.path : "\(components.path)/"
-    components.path = "\(path)rest/v1/analytics_events"
+    components.path = "\(path)rest/v1/rpc/track_analytics_events"
     return components.url
   }
 
@@ -73,6 +73,23 @@ actor SupabaseAnalyticsService {
   private let pendingEventsDefaultsKey = "BloomwaveAnalyticsPendingEvents"
   private let maxPendingEvents = 1500
   private let maxBatchSize = 50
+  private let immediateFlushEventNames: Set<String> = [
+    "first_open",
+    "session_start",
+    "session_end",
+    "settings_updated",
+    "background_store_opened",
+    "background_viewed",
+    "background_equipped",
+    "background_temp_unlocked",
+    "ad_offer_shown",
+    "ad_started",
+    "ad_completed",
+    "purchase_offer_shown",
+    "purchase_started",
+    "purchase_completed",
+    "purchase_failed",
+  ]
 
   private let session: URLSession
   private var flushTask: Task<Void, Never>?
@@ -86,7 +103,11 @@ actor SupabaseAnalyticsService {
     guard SupabaseAnalyticsConfig.isEnabled else { return }
     guard let eventPayload = normalizedPayload(from: payload) else { return }
     appendPendingEvent(eventPayload)
-    scheduleFlush()
+    if shouldFlushImmediately(eventPayload) {
+      requestImmediateFlush()
+    } else {
+      scheduleFlush()
+    }
   }
 
   func flush() async {
@@ -125,9 +146,21 @@ actor SupabaseAnalyticsService {
     flushTask = nil
   }
 
+  private func requestImmediateFlush() {
+    flushTask?.cancel()
+    flushTask = nil
+
+    Task { [weak self] in
+      await self?.flush()
+    }
+  }
+
   private func normalizedPayload(from payload: [String: Any]) -> [String: Any]? {
     let eventName = sanitizedString(payload["event_name"])
-    guard !eventName.isEmpty else { return nil }
+    guard !eventName.isEmpty else {
+      Self.log("Rejected analytics payload with empty event_name")
+      return nil
+    }
 
     let properties = sanitizedJSONObject(payload["properties"]) as? [String: Any] ?? [:]
     let timestamp = sanitizedString(payload["timestamp"]).isEmpty
@@ -135,7 +168,10 @@ actor SupabaseAnalyticsService {
       : sanitizedString(payload["timestamp"])
     let sessionID = sanitizedString(payload["session_id"])
 
-    guard !sessionID.isEmpty else { return nil }
+    guard !sessionID.isEmpty else {
+      Self.log("Rejected analytics payload for event \(eventName) with empty session_id")
+      return nil
+    }
 
     var normalized: [String: Any] = [
       "user_id": sanitizedString(payload["user_id"]).isEmpty ? SupabaseAnalyticsConfig.installUserID : sanitizedString(payload["user_id"]),
@@ -179,6 +215,10 @@ actor SupabaseAnalyticsService {
     return normalized
   }
 
+  private func shouldFlushImmediately(_ event: [String: Any]) -> Bool {
+    immediateFlushEventNames.contains(sanitizedString(event["event_name"]))
+  }
+
   private func appendPendingEvent(_ event: [String: Any]) {
     guard let data = try? JSONSerialization.data(withJSONObject: event) else { return }
     var pendingEvents = UserDefaults.standard.array(forKey: pendingEventsDefaultsKey) as? [Data] ?? []
@@ -207,8 +247,9 @@ actor SupabaseAnalyticsService {
 
   private func sendBatch(_ batch: [[String: Any]]) async -> Bool {
     guard let endpointURL = SupabaseAnalyticsConfig.endpointURL else { return false }
-    guard JSONSerialization.isValidJSONObject(batch),
-          let body = try? JSONSerialization.data(withJSONObject: batch) else {
+    let rpcPayload = ["events": batch]
+    guard JSONSerialization.isValidJSONObject(rpcPayload),
+          let body = try? JSONSerialization.data(withJSONObject: rpcPayload) else {
       return false
     }
 

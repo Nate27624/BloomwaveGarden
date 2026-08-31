@@ -479,6 +479,16 @@ const state = {
     tealHits: 0,
     frenzyCount: 0,
   },
+  interactionStats: {
+    tapAttempts: 0,
+    successfulTaps: 0,
+    missedTaps: 0,
+    blockedTaps: 0,
+    inactiveTaps: 0,
+    pointerTapAttempts: 0,
+    keyboardTapAttempts: 0,
+    openingZapTaps: 0,
+  },
   backdrop: "classic",
   backdropColor: DEFAULT_BACKDROP_COLOR,
   assetsReady: false,
@@ -2702,6 +2712,23 @@ function postNativeAnalytics(payload = {}) {
   }
 }
 
+function requestAnalyticsFlush() {
+  const handler = window.webkit && window.webkit.messageHandlers
+    ? window.webkit.messageHandlers.nativeAnalytics
+    : null;
+
+  if (!handler) return false;
+
+  try {
+    handler.postMessage({
+      event: "flush",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function analyticsEnabled() {
   return window.__BLOOM_ANALYTICS?.enabled === true;
 }
@@ -2784,6 +2811,142 @@ function getProductTrackingContext(productID, backdrop = "") {
   };
 }
 
+function getAnalyticsSettingsSnapshot() {
+  return {
+    tapEffectVolume: Math.round(clamp(appSettings.tapEffectVolume, 0, 1) * 100) / 100,
+    showOnGameCenter: shouldShowOnGameCenter(),
+    showGameplayHud: shouldShowGameplayHud(),
+  };
+}
+
+function getAnalyticsFeatureFlagsSnapshot() {
+  return {
+    purchaseUiEnabled: isPurchaseUiEnabled(),
+    rewardedAdsEnabled: isRewardedAdsEnabled(),
+    customBackgroundsEnabled: isCustomBackgroundsEnabled(),
+    lifetimePassOnlyMode: isLifetimePassOnlyMode(),
+  };
+}
+
+function getTapStatsSnapshot() {
+  return {
+    tapAttempts: state.interactionStats.tapAttempts,
+    successfulTaps: state.interactionStats.successfulTaps,
+    missedTaps: state.interactionStats.missedTaps,
+    blockedTaps: state.interactionStats.blockedTaps,
+    inactiveTaps: state.interactionStats.inactiveTaps,
+    pointerTapAttempts: state.interactionStats.pointerTapAttempts,
+    keyboardTapAttempts: state.interactionStats.keyboardTapAttempts,
+    openingZapTaps: state.interactionStats.openingZapTaps,
+  };
+}
+
+function currentAnalyticsSessionElapsedSec() {
+  if (!analyticsSessionStartedAtMs) return 0;
+  return Math.max(0, Math.round(((performance.now() - analyticsSessionStartedAtMs) / 1000) * 10) / 10);
+}
+
+function trackTapAttempt({
+  inputSource = "pointer",
+  outcome = "hit",
+  actionSource = "tap_burst",
+  intervalMs = null,
+  x = WORLD_W * 0.5,
+  y = WORLD_H * 0.5,
+  units = 0,
+  hitCount = 0,
+  regularCount = 0,
+  goldCount = 0,
+  arcCount = 0,
+  zapCount = 0,
+  expandedZaps = 0,
+  frenzy = false,
+  blocked = false,
+  miss = false,
+} = {}) {
+  const normalizedInputSource = inputSource === "keyboard" ? "keyboard" : "pointer";
+  const normalizedOutcome = ["hit", "miss", "blocked", "inactive"].includes(outcome) ? outcome : "hit";
+  const safeUnits = Math.max(0, Math.floor(Number(units) || 0));
+  const tapIndex = state.interactionStats.tapAttempts + 1;
+
+  state.interactionStats.tapAttempts = tapIndex;
+  if (normalizedInputSource === "keyboard") state.interactionStats.keyboardTapAttempts += 1;
+  else state.interactionStats.pointerTapAttempts += 1;
+
+  if (normalizedOutcome === "hit") state.interactionStats.successfulTaps += 1;
+  if (normalizedOutcome === "miss") state.interactionStats.missedTaps += 1;
+  if (normalizedOutcome === "blocked") state.interactionStats.blockedTaps += 1;
+  if (normalizedOutcome === "inactive") state.interactionStats.inactiveTaps += 1;
+  if (actionSource === "opening_zap") state.interactionStats.openingZapTaps += 1;
+
+  trackAnalyticsEvent("tap_attempt", {
+    properties: {
+      inputSource: normalizedInputSource,
+      outcome: normalizedOutcome,
+      actionSource,
+      tapIndex,
+      intervalMs: typeof intervalMs === "number" && Number.isFinite(intervalMs)
+        ? Math.max(0, Math.round(intervalMs))
+        : null,
+      sessionElapsedSec: currentAnalyticsSessionElapsedSec(),
+      xNorm: Math.round(clamp(x / Math.max(1, WORLD_W), 0, 1) * 1000) / 1000,
+      yNorm: Math.round(clamp(y / Math.max(1, WORLD_H), 0, 1) * 1000) / 1000,
+      units: safeUnits,
+      hitCount: Math.max(0, Math.floor(Number(hitCount) || 0)),
+      regularCount: Math.max(0, Math.floor(Number(regularCount) || 0)),
+      goldCount: Math.max(0, Math.floor(Number(goldCount) || 0)),
+      arcCount: Math.max(0, Math.floor(Number(arcCount) || 0)),
+      zapCount: Math.max(0, Math.floor(Number(zapCount) || 0)),
+      expandedZaps: Math.max(0, Math.floor(Number(expandedZaps) || 0)),
+      frenzy: frenzy === true,
+      blocked: blocked === true,
+      miss: miss === true,
+      score: Math.max(0, Math.floor(state.score)),
+      crates: Math.max(0, Math.floor(state.crates)),
+      combo: Math.max(0, Math.floor(state.combo)),
+      backdrop: state.backdrop,
+    },
+  });
+}
+
+function normalizedAnalyticsSettingValue(settingKey, value) {
+  if (settingKey === "tapEffectVolume") {
+    const numericValue = Number(value);
+    return Math.round(clamp(Number.isFinite(numericValue) ? numericValue : 0, 0, 1) * 100) / 100;
+  }
+  return value === true;
+}
+
+function trackSettingsChange(settingKey, previousValue, nextValue, source = "settings_screen") {
+  const settingName = ({
+    tapEffectVolume: "tap_effect_volume",
+    showOnGameCenter: "show_on_game_center",
+    showGameplayHud: "show_gameplay_hud",
+  })[settingKey];
+
+  if (!settingName) return false;
+
+  const normalizedPreviousValue = normalizedAnalyticsSettingValue(settingKey, previousValue);
+  const normalizedNextValue = normalizedAnalyticsSettingValue(settingKey, nextValue);
+  if (normalizedPreviousValue === normalizedNextValue) return false;
+
+  const didTrack = trackAnalyticsEvent("settings_updated", {
+    properties: {
+      source,
+      settingKey: settingName,
+      previousValue: normalizedPreviousValue,
+      value: normalizedNextValue,
+      ...getAnalyticsSettingsSnapshot(),
+      ...getAnalyticsFeatureFlagsSnapshot(),
+    },
+  });
+
+  if (didTrack) {
+    requestAnalyticsFlush();
+  }
+  return didTrack;
+}
+
 function beginAnalyticsSession(reason = "launch") {
   if (!analyticsEnabled()) return "";
   if (analyticsSessionID && analyticsSessionStartedAtMs) return analyticsSessionID;
@@ -2795,8 +2958,8 @@ function beginAnalyticsSession(reason = "launch") {
     properties: {
       reason,
       backdrop: state.backdrop,
-      showOnGameCenter: shouldShowOnGameCenter(),
-      showGameplayHud: shouldShowGameplayHud(),
+      ...getAnalyticsSettingsSnapshot(),
+      ...getAnalyticsFeatureFlagsSnapshot(),
     },
   });
   return analyticsSessionID;
@@ -2826,8 +2989,12 @@ function endAnalyticsSession(reason = "session-end") {
       crates: Math.max(0, Math.floor(playerTotals.crates + Math.max(0, Math.floor(state.crates) - Math.max(0, Math.floor(state.committedCrates) || 0)))),
       backdrop: state.backdrop,
       running: state.running === true,
+      ...getTapStatsSnapshot(),
+      ...getAnalyticsSettingsSnapshot(),
+      ...getAnalyticsFeatureFlagsSnapshot(),
     },
   });
+  requestAnalyticsFlush();
 }
 
 function trackAnalyticsEvent(eventName, {
@@ -2879,8 +3046,8 @@ function trackFirstOpenIfNeeded() {
   if (trackAnalyticsEvent("first_open", {
     properties: {
       initialBackdrop: state.backdrop,
-      purchaseUiEnabled: isPurchaseUiEnabled(),
-      rewardedAdsEnabled: isRewardedAdsEnabled(),
+      ...getAnalyticsSettingsSnapshot(),
+      ...getAnalyticsFeatureFlagsSnapshot(),
     },
   })) {
     analyticsInstallState = {
@@ -3442,6 +3609,14 @@ function softReset(showOverlay = true) {
   state.stats.amberHits = 0;
   state.stats.tealHits = 0;
   state.stats.frenzyCount = 0;
+  state.interactionStats.tapAttempts = 0;
+  state.interactionStats.successfulTaps = 0;
+  state.interactionStats.missedTaps = 0;
+  state.interactionStats.blockedTaps = 0;
+  state.interactionStats.inactiveTaps = 0;
+  state.interactionStats.pointerTapAttempts = 0;
+  state.interactionStats.keyboardTapAttempts = 0;
+  state.interactionStats.openingZapTaps = 0;
   lastLeaderboardAutoSaveAtMs = performance.now();
   lastLeaderboardAutoSaveBlooms = 0;
 
@@ -3634,7 +3809,7 @@ function triggerFrenzy() {
   setStatus("Frenzy active x2 points.", 1.3);
 }
 
-function runOpeningFullBoardZap(x, y) {
+function runOpeningFullBoardZap(x, y, inputSource = "pointer", intervalMs = null) {
   if (!state.openingZapAvailable || state.buds.length === 0) return false;
 
   state.openingZapAvailable = false;
@@ -3726,11 +3901,25 @@ function runOpeningFullBoardZap(x, y) {
       crates: Math.max(0, Math.floor(state.crates)),
     },
   });
+  trackTapAttempt({
+    inputSource,
+    outcome: "hit",
+    actionSource: "opening_zap",
+    intervalMs,
+    x,
+    y,
+    units: regularCount + (goldCount * 2),
+    hitCount,
+    regularCount,
+    goldCount,
+    arcCount: hitCount,
+    frenzy: nowFrenzy || goldCount > 0,
+  });
 
   return true;
 }
 
-function resolveTapBurst(x, y) {
+function resolveTapBurst(x, y, inputSource = "pointer", intervalMs = null) {
   const which = state.nextPalette;
   const nowFrenzy = state.frenzyTimer > 0;
   const radius = nowFrenzy ? 36 : 32;
@@ -3920,6 +4109,24 @@ function resolveTapBurst(x, y) {
       },
     });
   }
+  trackTapAttempt({
+    inputSource,
+    outcome: miss ? "miss" : blocked ? "blocked" : "hit",
+    actionSource: "tap_burst",
+    intervalMs,
+    x,
+    y,
+    units: harvestRegular + harvestArc + (harvestGold * 2),
+    hitCount,
+    regularCount: harvestRegular,
+    goldCount: harvestGold,
+    arcCount: harvestArc,
+    zapCount,
+    expandedZaps,
+    frenzy: audioFrenzy,
+    blocked,
+    miss,
+  });
 
   if (directHits >= 4) {
     addPulse(x + rand(-5, 5), y + rand(-5, 5), which, 0.75, 0.65);
@@ -5504,7 +5711,7 @@ function updatePointerFromClient(clientX, clientY) {
   state.pointerTargetY = point.y;
 }
 
-function handleTap(clientX, clientY) {
+function handleTap(clientX, clientY, inputSource = "pointer") {
   lofi.primeOnGesture();
   if (!lofi.started || lofi.muted) {
     void startAudioMaybe();
@@ -5513,15 +5720,31 @@ function handleTap(clientX, clientY) {
   updatePointerFromClient(clientX, clientY);
 
   if (!state.running) {
+    trackTapAttempt({
+      inputSource,
+      outcome: "inactive",
+      actionSource: "inactive",
+      x: state.pointerTargetX,
+      y: state.pointerTargetY,
+    });
     return;
   }
 
-  tryBurstAt(state.pointerTargetX, state.pointerTargetY, performance.now());
+  tryBurstAt(state.pointerTargetX, state.pointerTargetY, performance.now(), inputSource);
 }
 
-function tryBurstAt(x, y, nowMs = performance.now()) {
+function tryBurstAt(x, y, nowMs = performance.now(), inputSource = "pointer") {
   const elapsed = nowMs - state.lastBurstAtMs;
   if (elapsed < MIN_BURST_INTERVAL_MS) {
+    trackTapAttempt({
+      inputSource,
+      outcome: "blocked",
+      actionSource: "rate_limited",
+      intervalMs: elapsed,
+      x,
+      y,
+      blocked: true,
+    });
     if (nowMs - state.lastBlockedTapAtMs >= BLOCKED_SPAM_PENALTY_MS) {
       state.lastBlockedTapAtMs = nowMs;
       state.combo = Math.max(0, state.combo - 1);
@@ -5533,15 +5756,15 @@ function tryBurstAt(x, y, nowMs = performance.now()) {
   }
 
   state.lastBurstAtMs = nowMs;
-  if (runOpeningFullBoardZap(x, y)) return true;
-  resolveTapBurst(x, y);
+  if (runOpeningFullBoardZap(x, y, inputSource, Number.isFinite(elapsed) ? elapsed : null)) return true;
+  resolveTapBurst(x, y, inputSource, Number.isFinite(elapsed) ? elapsed : null);
   return true;
 }
 
 function handlePointerDown(event) {
   event.preventDefault();
   postNativeAudio("gesture");
-  handleTap(event.clientX, event.clientY);
+  handleTap(event.clientX, event.clientY, "pointer");
 }
 
 function handlePointerMove(event) {
@@ -5614,7 +5837,7 @@ window.addEventListener("keydown", safeUiAction("keyboard action", (event) => {
     if (!lofi.started || lofi.muted) {
       void startAudioMaybe();
     }
-    tryBurstAt(state.pointerX, state.pointerY, performance.now());
+    tryBurstAt(state.pointerX, state.pointerY, performance.now(), "keyboard");
   }
 }));
 
@@ -5845,27 +6068,46 @@ if (settingsCornerBtn) {
 }
 
 if (tapVolumeInput) {
+  const cacheTapVolumeAnalyticsOrigin = () => {
+    tapVolumeInput.dataset.analyticsPreviousValue = String(appSettings.tapEffectVolume);
+  };
+  tapVolumeInput.addEventListener("pointerdown", safeUiAction("tap volume engage", cacheTapVolumeAnalyticsOrigin));
+  tapVolumeInput.addEventListener("touchstart", safeUiAction("tap volume touch", cacheTapVolumeAnalyticsOrigin), { passive: true });
+  tapVolumeInput.addEventListener("focus", safeUiAction("tap volume focus", cacheTapVolumeAnalyticsOrigin));
   tapVolumeInput.addEventListener("input", safeUiAction("tap volume input", () => {
     updateGameSettings({
       tapEffectVolume: Number(tapVolumeInput.value) / 100,
     });
   }));
+  tapVolumeInput.addEventListener("change", safeUiAction("tap volume change", () => {
+    const previousValue = Number(tapVolumeInput.dataset.analyticsPreviousValue);
+    trackSettingsChange(
+      "tapEffectVolume",
+      Number.isFinite(previousValue) ? previousValue : appSettings.tapEffectVolume,
+      appSettings.tapEffectVolume,
+    );
+    delete tapVolumeInput.dataset.analyticsPreviousValue;
+  }));
 }
 
 if (gameCenterVisibilityToggle) {
   gameCenterVisibilityToggle.addEventListener("change", safeUiAction("game center visibility", () => {
+    const previousValue = appSettings.showOnGameCenter;
     updateGameSettings({
       showOnGameCenter: gameCenterVisibilityToggle.checked,
     });
+    trackSettingsChange("showOnGameCenter", previousValue, appSettings.showOnGameCenter);
   }));
 }
 
 if (gameplayHudToggle) {
   gameplayHudToggle.addEventListener("change", safeUiAction("gameplay hud visibility", () => {
+    const previousValue = appSettings.showGameplayHud;
     updateGameSettings({
       showGameplayHud: gameplayHudToggle.checked,
     });
     setGameUiVisible(overlayEl?.classList.contains("hidden") ?? false);
+    trackSettingsChange("showGameplayHud", previousValue, appSettings.showGameplayHud);
   }));
 }
 
