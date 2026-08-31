@@ -17,6 +17,7 @@ const settingsBackBtn = document.getElementById("settings-back-btn");
 const unlockBackgroundsBtn = document.getElementById("unlock-backgrounds-btn");
 const unlockLifetimeBtn = document.getElementById("unlock-lifetime-btn");
 const lifetimePriceEl = document.getElementById("lifetime-price");
+const lifetimeNoteEl = unlockLifetimeBtn?.querySelector(".lifetime-btn-note");
 const restorePurchasesBtn = document.getElementById("restore-purchases-btn");
 const premiumSelectionEl = document.getElementById("premium-selection");
 const fundingNoteEl = document.getElementById("funding-note");
@@ -748,8 +749,13 @@ function syncBackdropTiles() {
     } else {
       unlockLifetimeBtn.textContent = `Lifetime Pass ${getLifetimePriceLabel()} (best value)`;
     }
+    if (lifetimeNoteEl) {
+      lifetimeNoteEl.textContent = purchaseUiNoticeIsError ? "Issue loading" : "(best value)";
+    }
     unlockLifetimeBtn.disabled = backdropUnlocks.lifetime;
     unlockLifetimeBtn.classList.toggle("is-hidden", !purchaseUiEnabled || backdropUnlocks.lifetime);
+    unlockLifetimeBtn.classList.toggle("is-error", purchaseUiNoticeIsError);
+    unlockLifetimeBtn.title = purchaseUiNoticeIsError ? purchaseUiNotice : "";
   }
 
   if (restorePurchasesBtn) {
@@ -758,12 +764,24 @@ function syncBackdropTiles() {
 
   if (fundingNoteEl) {
     fundingNoteEl.classList.toggle("screen-hidden", !purchaseUiEnabled);
+    fundingNoteEl.classList.toggle("is-error", purchaseUiNoticeIsError);
     if (purchaseUiEnabled) {
-      fundingNoteEl.textContent = backdropUnlocks.lifetime ? FUNDING_NOTE_LIFETIME_ACTIVE : FUNDING_NOTE_DEFAULT;
+      fundingNoteEl.textContent = purchaseUiNotice
+        || (backdropUnlocks.lifetime ? FUNDING_NOTE_LIFETIME_ACTIVE : FUNDING_NOTE_DEFAULT);
     }
   }
 
   syncColorControls();
+}
+
+function setPurchaseUiNotice(message, isError = false) {
+  purchaseUiNotice = typeof message === "string" ? message.trim() : "";
+  purchaseUiNoticeIsError = purchaseUiNotice.length > 0 && isError;
+}
+
+function clearPurchaseUiNotice() {
+  purchaseUiNotice = "";
+  purchaseUiNoticeIsError = false;
 }
 
 function selectBackdrop(backdrop) {
@@ -1296,6 +1314,8 @@ let nativeLocalPlayerName = "";
 let nativeProductsRequested = false;
 let nativeEntitlementsRequested = false;
 let nativeProductPrices = {};
+let purchaseUiNotice = "";
+let purchaseUiNoticeIsError = false;
 let pendingPurchaseProductID = "";
 let pendingRewardedBackdrop = "";
 let nativeRewardedAdStatus = {
@@ -2668,6 +2688,8 @@ function applyOwnedProductIDs(productIDs = []) {
 
 function receiveNativePurchaseProducts(payload = {}) {
   nativeProductsRequested = false;
+  const status = typeof payload.status === "string" ? payload.status : "";
+  const reason = typeof payload.reason === "string" ? payload.reason.trim() : "";
   const prices = {};
   const products = Array.isArray(payload.products) ? payload.products : [];
   for (const product of products) {
@@ -2681,15 +2703,22 @@ function receiveNativePurchaseProducts(payload = {}) {
     ...prices,
   };
   applyOwnedProductIDs(Array.isArray(payload.ownedProductIDs) ? payload.ownedProductIDs : []);
+  if (status === "unavailable") {
+    setPurchaseUiNotice(reason || "StoreKit products are unavailable on this device.", true);
+  } else if (products.length > 0) {
+    clearPurchaseUiNotice();
+  }
   syncBackdropTiles();
 }
 
 function receiveNativePurchaseResult(payload = {}) {
   const status = typeof payload.status === "string" ? payload.status : "";
   const productID = typeof payload.productID === "string" ? payload.productID : pendingPurchaseProductID;
+  const reason = typeof payload.reason === "string" ? payload.reason.trim() : "";
   pendingPurchaseProductID = "";
   const ownedProductIDs = Array.isArray(payload.ownedProductIDs) ? payload.ownedProductIDs : [];
   if (status === "success" || status === "restored") {
+    clearPurchaseUiNotice();
     applyOwnedProductIDs(ownedProductIDs.length > 0 ? ownedProductIDs : [productID]);
     const backdrop = PRODUCT_BACKDROP_IDS[productID];
     if (backdrop && isBackdropUnlocked(backdrop)) {
@@ -2700,9 +2729,22 @@ function receiveNativePurchaseResult(payload = {}) {
     return;
   }
 
+  const message = reason || (
+    status === "cancelled"
+      ? "Purchase cancelled."
+      : status === "pending"
+        ? "Purchase pending."
+        : status === "unverified"
+          ? "Transaction could not be verified."
+          : status === "failed"
+            ? "Purchase failed on this device."
+            : "Purchase unavailable on this device."
+  );
   if (status === "unavailable" && backgroundPreviewPurchaseBtn) {
     backgroundPreviewPurchaseBtn.textContent = "Unavailable";
   }
+  setPurchaseUiNotice(message, true);
+  setStatus(message, 3.2);
   syncBackdropTiles();
 }
 
@@ -2716,6 +2758,7 @@ function purchaseProduct(productID, fallbackUnlock) {
   if (!productID) return false;
   if (!isPurchaseUiEnabled()) return false;
   if (hasNativePurchaseBridge()) {
+    clearPurchaseUiNotice();
     pendingPurchaseProductID = productID;
     postNativePurchase("purchase", { productID });
     return true;

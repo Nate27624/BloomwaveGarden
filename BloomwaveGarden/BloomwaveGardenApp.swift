@@ -294,6 +294,7 @@ final class PurchaseService {
       } catch {
         completion([
           "status": "unavailable",
+          "reason": error.localizedDescription,
           "products": [],
           "ownedProductIDs": await currentOwnedProductIDs(),
         ])
@@ -304,14 +305,24 @@ final class PurchaseService {
   func purchase(productID: String, completion: @escaping ([String: Any]) -> Void) {
     Task {
       guard knownProductIDs.contains(productID) else {
-        completion(["status": "unavailable", "productID": productID, "ownedProductIDs": await currentOwnedProductIDs()])
+        completion([
+          "status": "unavailable",
+          "productID": productID,
+          "reason": "The requested product is not configured for this build.",
+          "ownedProductIDs": await currentOwnedProductIDs(),
+        ])
         return
       }
 
       do {
         let product = try await product(for: productID)
         guard let product else {
-          completion(["status": "unavailable", "productID": productID, "ownedProductIDs": await currentOwnedProductIDs()])
+          completion([
+            "status": "unavailable",
+            "productID": productID,
+            "reason": "StoreKit could not load this product on the device.",
+            "ownedProductIDs": await currentOwnedProductIDs(),
+          ])
           return
         }
 
@@ -319,21 +330,46 @@ final class PurchaseService {
         switch result {
         case .success(let verification):
           guard let transaction = verifiedTransaction(from: verification) else {
-            completion(["status": "unverified", "productID": productID, "ownedProductIDs": await currentOwnedProductIDs()])
+            completion([
+              "status": "unverified",
+              "productID": productID,
+              "reason": "StoreKit could not verify the transaction.",
+              "ownedProductIDs": await currentOwnedProductIDs(),
+            ])
             return
           }
           await transaction.finish()
           let owned = Set(await currentOwnedProductIDs()).union([productID])
           completion(["status": "success", "productID": productID, "ownedProductIDs": Array(owned)])
         case .userCancelled:
-          completion(["status": "cancelled", "productID": productID, "ownedProductIDs": await currentOwnedProductIDs()])
+          completion([
+            "status": "cancelled",
+            "productID": productID,
+            "reason": "The purchase was cancelled.",
+            "ownedProductIDs": await currentOwnedProductIDs(),
+          ])
         case .pending:
-          completion(["status": "pending", "productID": productID, "ownedProductIDs": await currentOwnedProductIDs()])
+          completion([
+            "status": "pending",
+            "productID": productID,
+            "reason": "The purchase is pending approval or confirmation.",
+            "ownedProductIDs": await currentOwnedProductIDs(),
+          ])
         @unknown default:
-          completion(["status": "unknown", "productID": productID, "ownedProductIDs": await currentOwnedProductIDs()])
+          completion([
+            "status": "unknown",
+            "productID": productID,
+            "reason": "StoreKit returned an unknown purchase result.",
+            "ownedProductIDs": await currentOwnedProductIDs(),
+          ])
         }
       } catch {
-        completion(["status": "failed", "productID": productID, "ownedProductIDs": await currentOwnedProductIDs()])
+        completion([
+          "status": "failed",
+          "productID": productID,
+          "reason": error.localizedDescription,
+          "ownedProductIDs": await currentOwnedProductIDs(),
+        ])
       }
     }
   }
@@ -343,7 +379,11 @@ final class PurchaseService {
       do {
         try await AppStore.sync()
       } catch {
-        completion(["status": "failed", "ownedProductIDs": await currentOwnedProductIDs()])
+        completion([
+          "status": "failed",
+          "reason": error.localizedDescription,
+          "ownedProductIDs": await currentOwnedProductIDs(),
+        ])
         return
       }
 
