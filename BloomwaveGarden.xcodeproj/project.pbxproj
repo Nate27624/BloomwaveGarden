@@ -15,6 +15,7 @@
 		339EA3A7993110D2C146F230 /* sprout-1.png in Resources */ = {isa = PBXBuildFile; fileRef = EF43C79DD2A0906FEA71176E /* sprout-1.png */; };
 		34940DF48EDCA38565DAE637 /* sprout-2.png in Resources */ = {isa = PBXBuildFile; fileRef = F492C5687E5F41F037D2C4C1 /* sprout-2.png */; };
 		3C426BAD367F869BF76BA60C /* GameHUDModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3C0FE3EF6D6382076C77D1 /* GameHUDModel.swift */; };
+		44EFFBBB2C01666F886BEA1F /* SupabaseAnalyticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100B08B54344FE181CB70317 /* SupabaseAnalyticsService.swift */; };
 		5FCCA739C11DBC61CED8C43D /* BloomwaveGardenApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DFD08AD47087EE0BC496A4C /* BloomwaveGardenApp.swift */; };
 		6EC3BA28BA887A6B78D2D7EE /* bloom-amber.png in Resources */ = {isa = PBXBuildFile; fileRef = 626CC97C6F5F93940943925C /* bloom-amber.png */; };
 		84B007E659E69B8EEE3FEEA0 /* WebBundle in Resources */ = {isa = PBXBuildFile; fileRef = 9774D7F50E0A99A2FF25B58E /* WebBundle */; };
@@ -30,6 +31,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		100B08B54344FE181CB70317 /* SupabaseAnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseAnalyticsService.swift; sourceTree = "<group>"; };
 		198510CF5399579EB41AA6AF /* spirit-amber.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "spirit-amber.png"; sourceTree = "<group>"; };
 		1DFD08AD47087EE0BC496A4C /* BloomwaveGardenApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BloomwaveGardenApp.swift; sourceTree = "<group>"; };
 		1F0D9D5D7D78069DA06698F0 /* flower-amber.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "flower-amber.png"; sourceTree = "<group>"; };
@@ -103,6 +105,7 @@
 				22FCF81E9E45CE615EC10653 /* Info.plist */,
 				C73548E7227D3ACA04CBBBA1 /* LofiAudioEngine.swift */,
 				B848C2392722699B1745BD01 /* RewardedAdService.swift */,
+				100B08B54344FE181CB70317 /* SupabaseAnalyticsService.swift */,
 				443114265130400987CF9640 /* WebGameView.swift */,
 				12783E2F57D3537D32198BFA /* SpriteTextures */,
 			);
@@ -211,6 +214,7 @@
 				104AF98DD00F172F32D2E8F0 /* GardenScene.swift in Sources */,
 				2DD5B29D9BF5EF26BDED9FAD /* LofiAudioEngine.swift in Sources */,
 				939B612823E337A3B5DF9661 /* RewardedAdService.swift in Sources */,
+				44EFFBBB2C01666F886BEA1F /* SupabaseAnalyticsService.swift in Sources */,
 				3208A563A28788B5790C9985 /* WebGameView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -283,7 +287,10 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				BLOOMWAVE_ENABLE_IN_APP_PURCHASES = NO;
 				BLOOMWAVE_ENABLE_REWARDED_ADS = NO;
+				BLOOMWAVE_ENABLE_SUPABASE_ANALYTICS = NO;
 				BLOOMWAVE_LIFETIME_PASS_ONLY_BACKGROUNDS = NO;
+				BLOOMWAVE_SUPABASE_ANON_KEY = "";
+				BLOOMWAVE_SUPABASE_URL = "";
 				CODE_SIGN_ENTITLEMENTS = BloomwaveGarden/BloomwaveGarden.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
@@ -377,7 +384,10 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				BLOOMWAVE_ENABLE_IN_APP_PURCHASES = NO;
 				BLOOMWAVE_ENABLE_REWARDED_ADS = NO;
+				BLOOMWAVE_ENABLE_SUPABASE_ANALYTICS = NO;
 				BLOOMWAVE_LIFETIME_PASS_ONLY_BACKGROUNDS = NO;
+				BLOOMWAVE_SUPABASE_ANON_KEY = "";
+				BLOOMWAVE_SUPABASE_URL = "";
 				CODE_SIGN_ENTITLEMENTS = BloomwaveGarden/BloomwaveGarden.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;

@@ -30,6 +30,12 @@
   <string>$(BLOOMWAVE_ENABLE_REWARDED_ADS)</string>
   <key>BloomwaveLifetimePassOnlyBackgroundStoreEnabled</key>
   <string>$(BLOOMWAVE_LIFETIME_PASS_ONLY_BACKGROUNDS)</string>
+  <key>BloomwaveSupabaseAnalyticsEnabled</key>
+  <string>$(BLOOMWAVE_ENABLE_SUPABASE_ANALYTICS)</string>
+  <key>BloomwaveSupabaseURL</key>
+  <string>$(BLOOMWAVE_SUPABASE_URL)</string>
+  <key>BloomwaveSupabaseAnonKey</key>
+  <string>$(BLOOMWAVE_SUPABASE_ANON_KEY)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>GameCenterLeaderboardID</key>

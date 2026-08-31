@@ -103,6 +103,7 @@ const BACKDROP_COLOR_STORAGE_KEY = "bloomwave_backdrop_color_v1";
 const BACKDROP_UNLOCKS_STORAGE_KEY = "bloomwave_backdrop_unlocks_v1";
 const TEMP_BACKDROP_ACCESS_STORAGE_KEY = "bloomwave_backdrop_temp_access_v1";
 const TEMP_USAGE_LOG_STORAGE_KEY = "bloomwave_usage_log_tmp_v1";
+const ANALYTICS_INSTALL_STORAGE_KEY = "bloomwave_analytics_install_v1";
 const FIRST_START_STORAGE_KEY = "bloomwave_first_start_seen_v1";
 const DAILY_DEAL_STORAGE_KEY = "bloomwave_daily_background_deal_v1";
 const GAME_SETTINGS_STORAGE_KEY = "bloomwave_game_settings_v1";
@@ -127,6 +128,7 @@ const DAILY_DEAL_PRICE_LABEL = "$.50";
 const REWARDED_BACKDROP_ACCESS_HOURS = 24;
 const MIN_UNLOCK_PROGRESS_DISPLAY = 0.08;
 const LIFETIME_PRODUCT_ID = "com.nate27624.bloomwavegarden.backgrounds.lifetime";
+const LIFETIME_BACKGROUND_ANALYTICS_ID = "all_backgrounds";
 const BACKDROP_PRODUCT_IDS = {
   twilight: "com.nate27624.bloomwavegarden.background.citylight",
   aurora: "com.nate27624.bloomwavegarden.background.moonlitfalls",
@@ -140,6 +142,12 @@ const BACKDROP_PRODUCT_IDS = {
 const PRODUCT_BACKDROP_IDS = Object.fromEntries(
   Object.entries(BACKDROP_PRODUCT_IDS).map(([backdrop, productID]) => [productID, backdrop]),
 );
+const PRODUCT_TYPE_BY_ID = {
+  [LIFETIME_PRODUCT_ID]: "lifetime_pass",
+  ...Object.fromEntries(
+    Object.values(BACKDROP_PRODUCT_IDS).map((productID) => [productID, "individual_background"]),
+  ),
+};
 const DEFAULT_ESTIMATED_BLOOMS_PER_MINUTE = 300;
 const BACKDROP_UNLOCK_BLOOMS_PER_MINUTE = 10000;
 const BACKDROP_UNLOCK_BLOOM_ROUNDING = 10000000;
@@ -578,14 +586,31 @@ function hasTemporaryBackdropAccess(backdrop) {
 
 function grantTemporaryBackdropAccess(backdrop, hours = REWARDED_BACKDROP_ACCESS_HOURS) {
   if (!isCustomBackgroundsEnabled() || !BACKDROP_IDS.includes(backdrop) || backdrop === "classic") return;
+  const expiresAt = Date.now() + hours * 60 * 60 * 1000;
   temporaryBackdropAccess = {
     ...readTemporaryBackdropAccess(),
-    [backdrop]: Date.now() + hours * 60 * 60 * 1000,
+    [backdrop]: expiresAt,
   };
   writeTemporaryBackdropAccess(temporaryBackdropAccess);
   selectedLockedBackdrop = null;
   state.backdrop = backdrop;
   writeBackdropPreference(backdrop);
+  trackAnalyticsEvent("background_temp_unlocked", {
+    backgroundID: backdrop,
+    ownershipType: "temporary",
+    properties: {
+      durationHours: hours,
+      expiresAt: new Date(expiresAt).toISOString(),
+      source: "rewarded_ad",
+    },
+  });
+  trackAnalyticsEvent("background_equipped", {
+    backgroundID: backdrop,
+    ownershipType: "temporary",
+    properties: {
+      source: "rewarded_ad_unlock",
+    },
+  });
   hideBackgroundPreview();
   startSession();
   syncBackdropTiles();
@@ -792,10 +817,21 @@ function selectBackdrop(backdrop) {
     syncBackdropTiles();
     return;
   }
+  const previousBackdrop = state.backdrop;
   selectedLockedBackdrop = null;
   state.backdrop = backdrop;
   writeBackdropPreference(backdrop);
   syncBackdropTiles();
+  if (previousBackdrop !== backdrop) {
+    trackAnalyticsEvent("background_equipped", {
+      backgroundID: backdrop,
+      ownershipType: getBackdropOwnershipType(backdrop),
+      properties: {
+        previousBackdrop,
+        source: "manual_select",
+      },
+    });
+  }
 }
 
 function renderBackdropToCanvas(targetCanvas, backdrop) {
@@ -873,6 +909,10 @@ function showBackgroundPreview(backdrop) {
   const progress = getBackdropUnlockProgress(backdrop, stats);
   const hasBloomUnlock = !isLifetimePassOnlyMode() && progress.targetBlooms > 0;
   const remainingBlooms = Math.max(0, Math.ceil(progress.targetBlooms - stats.totalBlooms));
+  const canWatchAd = isRewardedAdsEnabled() && hasNativeAdBridge() && backdrop !== "classic" && !unlocked && !tempAccess;
+  const canPurchase = isPurchaseUiEnabled() && backdrop !== "classic" && !unlocked;
+  const previewProductID = isLifetimePassOnlyMode() ? LIFETIME_PRODUCT_ID : BACKDROP_PRODUCT_IDS[backdrop];
+  const previewProductContext = getProductTrackingContext(previewProductID, backdrop);
 
   if (backgroundPreviewTitleEl) backgroundPreviewTitleEl.textContent = name;
   if (backgroundPreviewUseBtn) {
@@ -906,7 +946,6 @@ function showBackgroundPreview(backdrop) {
   }
   syncBackgroundPreviewAdButton(backdrop);
   if (backgroundPreviewPurchaseBtn) {
-    const canPurchase = isPurchaseUiEnabled() && backdrop !== "classic" && !unlocked;
     backgroundPreviewPurchaseBtn.textContent = isLifetimePassOnlyMode()
       ? `Get Lifetime Pass ${getLifetimePriceLabel()}`
       : `Unlock Forever ${price}`;
@@ -917,6 +956,45 @@ function showBackgroundPreview(backdrop) {
 
   renderBackgroundPreview(backdrop);
   syncBackdropTiles();
+  trackAnalyticsEvent("background_viewed", {
+    backgroundID: backdrop,
+    ownershipType: getBackdropOwnershipType(backdrop),
+    properties: {
+      usable,
+      unlocked,
+      temporaryAccess: tempAccess,
+      remainingBlooms,
+      hasBloomUnlock,
+      priceLabel: price,
+      placement: "background_preview",
+    },
+  });
+  if (canWatchAd) {
+    trackAnalyticsEvent("ad_offer_shown", {
+      backgroundID: backdrop,
+      ownershipType: getBackdropOwnershipType(backdrop),
+      placement: "background_preview",
+      properties: {
+        durationHours: REWARDED_BACKDROP_ACCESS_HOURS,
+        adReady: nativeRewardedAdStatus.ready,
+      },
+    });
+  }
+  if (canPurchase && previewProductContext.productID) {
+    trackAnalyticsEvent("purchase_offer_shown", {
+      backgroundID: previewProductContext.backgroundID,
+      ownershipType: getBackdropOwnershipType(backdrop),
+      productID: previewProductContext.productID,
+      productType: previewProductContext.productType,
+      priceUSD: previewProductContext.priceUSD,
+      properties: {
+        placement: "background_preview",
+        previewBackgroundID: previewProductContext.previewBackgroundID || backdrop,
+        ownershipType: getBackdropOwnershipType(backdrop),
+        priceLabel: price,
+      },
+    });
+  }
   if (isRewardedAdsEnabled() && hasNativeAdBridge() && !unlocked && !tempAccess && backdrop !== "classic") {
     requestNativeRewardedAdStatus();
   }
@@ -1314,9 +1392,11 @@ let nativeLocalPlayerName = "";
 let nativeProductsRequested = false;
 let nativeEntitlementsRequested = false;
 let nativeProductPrices = {};
+let nativeProductMetadata = {};
 let purchaseUiNotice = "";
 let purchaseUiNoticeIsError = false;
 let pendingPurchaseProductID = "";
+let pendingPurchaseContext = null;
 let pendingRewardedBackdrop = "";
 let nativeRewardedAdStatus = {
   ready: false,
@@ -1331,6 +1411,9 @@ let temporaryBackdropAccess = readTemporaryBackdropAccess();
 let selectedLockedBackdrop = null;
 let activeUsageSessionStartedAtMs = null;
 let activeUsageSessionId = null;
+let analyticsInstallState = readAnalyticsInstallState();
+let analyticsSessionStartedAtMs = null;
+let analyticsSessionID = "";
 let lastLeaderboardAutoSaveAtMs = 0;
 let lastLeaderboardAutoSaveBlooms = 0;
 syncPlayerTotalsFromLocalLeaderboard(leaderboardEntries);
@@ -2162,6 +2245,15 @@ function showPremiumScreen() {
   syncCustomBackgroundAvailability();
   syncBackdropTiles();
   syncColorControls();
+  trackAnalyticsEvent("background_store_opened", {
+    backgroundID: state.backdrop,
+    ownershipType: getBackdropOwnershipType(state.backdrop),
+    properties: {
+      placement: "menu",
+      selectedBackdrop: state.backdrop,
+      showLifetimeOnly: isLifetimePassOnlyMode(),
+    },
+  });
 }
 
 function showSettingsScreen() {
@@ -2588,6 +2680,229 @@ function postNativeAd(event, payload = {}) {
   }
 }
 
+function hasNativeAnalyticsBridge() {
+  return analyticsEnabled() && Boolean(window.webkit?.messageHandlers?.nativeAnalytics);
+}
+
+function postNativeAnalytics(payload = {}) {
+  const handler = window.webkit && window.webkit.messageHandlers
+    ? window.webkit.messageHandlers.nativeAnalytics
+    : null;
+
+  if (!handler) return false;
+
+  try {
+    handler.postMessage({
+      event: "track",
+      payload,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function analyticsEnabled() {
+  return window.__BLOOM_ANALYTICS?.enabled === true;
+}
+
+function analyticsBootstrap() {
+  const bootstrap = window.__BLOOM_ANALYTICS;
+  return bootstrap && typeof bootstrap === "object" ? bootstrap : {};
+}
+
+function readAnalyticsInstallState() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(ANALYTICS_INSTALL_STORAGE_KEY) || "{}");
+    return {
+      firstOpenTracked: parsed?.firstOpenTracked === true,
+    };
+  } catch {
+    return {
+      firstOpenTracked: false,
+    };
+  }
+}
+
+function writeAnalyticsInstallState(nextState) {
+  try {
+    localStorage.setItem(ANALYTICS_INSTALL_STORAGE_KEY, JSON.stringify({
+      firstOpenTracked: nextState?.firstOpenTracked === true,
+    }));
+  } catch {
+    // Ignore storage write failures.
+  }
+}
+
+function createAnalyticsSessionID() {
+  return `session-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function parsePriceUSD(value) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const normalized = value.replace(/[^0-9.]/g, "");
+    if (!normalized) return null;
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function getBackdropOwnershipType(backdrop) {
+  if (!BACKDROP_IDS.includes(backdrop)) return "";
+  if (backdrop === "classic") return "default";
+  if (hasTemporaryBackdropAccess(backdrop) && !isBackdropUnlocked(backdrop)) return "temporary";
+  if (backdropUnlocks.lifetime) return "lifetime_pass";
+  if (backdropUnlocks.unlocked.includes(backdrop)) return "purchased";
+  if (isBackdropUnlocked(backdrop)) return "earned";
+  if (isBackdropFree(backdrop)) return "free";
+  return "locked";
+}
+
+function getProductTrackingContext(productID, backdrop = "") {
+  const metadata = nativeProductMetadata[productID] || {};
+  if (productID === LIFETIME_PRODUCT_ID) {
+    return {
+      productID,
+      productType: PRODUCT_TYPE_BY_ID[productID] || "lifetime_pass",
+      backgroundID: LIFETIME_BACKGROUND_ANALYTICS_ID,
+      priceUSD: parsePriceUSD(metadata.priceUSD ?? getLifetimePriceLabel()),
+      currencyCode: typeof metadata.currencyCode === "string" ? metadata.currencyCode : "",
+      previewBackgroundID: BACKDROP_IDS.includes(backdrop) ? backdrop : "",
+    };
+  }
+
+  const resolvedBackdrop = BACKDROP_IDS.includes(backdrop) ? backdrop : PRODUCT_BACKDROP_IDS[productID] || "";
+  return {
+    productID,
+    productType: PRODUCT_TYPE_BY_ID[productID] || "individual_background",
+    backgroundID: resolvedBackdrop,
+    priceUSD: parsePriceUSD(metadata.priceUSD ?? getBackdropPriceLabel(resolvedBackdrop)),
+    currencyCode: typeof metadata.currencyCode === "string" ? metadata.currencyCode : "",
+    previewBackgroundID: "",
+  };
+}
+
+function beginAnalyticsSession(reason = "launch") {
+  if (!analyticsEnabled()) return "";
+  if (analyticsSessionID && analyticsSessionStartedAtMs) return analyticsSessionID;
+
+  analyticsSessionID = createAnalyticsSessionID();
+  analyticsSessionStartedAtMs = performance.now();
+  trackAnalyticsEvent("session_start", {
+    sessionID: analyticsSessionID,
+    properties: {
+      reason,
+      backdrop: state.backdrop,
+      showOnGameCenter: shouldShowOnGameCenter(),
+      showGameplayHud: shouldShowGameplayHud(),
+    },
+  });
+  return analyticsSessionID;
+}
+
+function currentAnalyticsSessionID() {
+  if (!analyticsEnabled()) return "";
+  if (analyticsSessionID && analyticsSessionStartedAtMs) return analyticsSessionID;
+  return beginAnalyticsSession("implicit");
+}
+
+function endAnalyticsSession(reason = "session-end") {
+  if (!analyticsEnabled()) return;
+  if (!analyticsSessionID || !analyticsSessionStartedAtMs) return;
+
+  const sessionID = analyticsSessionID;
+  const durationSec = Math.max(0, Math.round(((performance.now() - analyticsSessionStartedAtMs) / 1000) * 10) / 10);
+  analyticsSessionID = "";
+  analyticsSessionStartedAtMs = null;
+
+  trackAnalyticsEvent("session_end", {
+    sessionID,
+    properties: {
+      reason,
+      duration_sec: durationSec,
+      blooms: Math.max(0, Math.floor(playerTotals.blooms + Math.max(0, Math.floor(state.score) - Math.max(0, Math.floor(state.committedScore) || 0)))),
+      crates: Math.max(0, Math.floor(playerTotals.crates + Math.max(0, Math.floor(state.crates) - Math.max(0, Math.floor(state.committedCrates) || 0)))),
+      backdrop: state.backdrop,
+      running: state.running === true,
+    },
+  });
+}
+
+function trackAnalyticsEvent(eventName, {
+  sessionID = "",
+  properties = {},
+  backgroundID = "",
+  ownershipType = "",
+  placement = "",
+  adNetwork = "",
+  revenueUSD = null,
+  productID = "",
+  productType = "",
+  priceUSD = null,
+} = {}) {
+  if (!analyticsEnabled()) return false;
+  if (!hasNativeAnalyticsBridge()) return false;
+
+  const resolvedSessionID = sessionID || currentAnalyticsSessionID();
+  if (!resolvedSessionID) return false;
+
+  const bootstrap = analyticsBootstrap();
+  const payload = {
+    user_id: typeof bootstrap.userID === "string" ? bootstrap.userID : "",
+    session_id: resolvedSessionID,
+    timestamp: new Date().toISOString(),
+    app_version: typeof bootstrap.appVersion === "string" ? bootstrap.appVersion : "",
+    platform: typeof bootstrap.platform === "string" ? bootstrap.platform : "web",
+    event_name: eventName,
+    properties: properties && typeof properties === "object" ? properties : {},
+  };
+
+  if (backgroundID) payload.background_id = backgroundID;
+  if (ownershipType) payload.ownership_type = ownershipType;
+  if (placement) payload.placement = placement;
+  if (adNetwork) payload.ad_network = adNetwork;
+  if (productID) payload.product_id = productID;
+  if (productType) payload.product_type = productType;
+  if (typeof revenueUSD === "number" && Number.isFinite(revenueUSD)) payload.revenue_usd = revenueUSD;
+  if (typeof priceUSD === "number" && Number.isFinite(priceUSD)) payload.price_usd = priceUSD;
+
+  return postNativeAnalytics(payload);
+}
+
+function trackFirstOpenIfNeeded() {
+  if (!analyticsEnabled()) return;
+  if (analyticsInstallState.firstOpenTracked) return;
+
+  beginAnalyticsSession("first_open");
+  if (trackAnalyticsEvent("first_open", {
+    properties: {
+      initialBackdrop: state.backdrop,
+      purchaseUiEnabled: isPurchaseUiEnabled(),
+      rewardedAdsEnabled: isRewardedAdsEnabled(),
+    },
+  })) {
+    analyticsInstallState = {
+      ...analyticsInstallState,
+      firstOpenTracked: true,
+    };
+    writeAnalyticsInstallState(analyticsInstallState);
+  }
+}
+
+window.bloomwaveAnalyticsBridge = {
+  track(eventName, payload = {}) {
+    if (typeof eventName !== "string" || !eventName.trim()) return false;
+    return trackAnalyticsEvent(eventName.trim(), payload && typeof payload === "object" ? payload : {});
+  },
+  trackCrateOpened(properties = {}) {
+    return trackAnalyticsEvent("crate_opened", {
+      properties: properties && typeof properties === "object" ? properties : {},
+    });
+  },
+};
+
 function requestNativeRewardedAdStatus() {
   if (!hasNativeAdBridge()) return false;
   return postNativeAd("getRewardedBackdropAdStatus", {});
@@ -2597,6 +2912,9 @@ function receiveNativeAdResult(payload = {}) {
   const status = typeof payload.status === "string" ? payload.status : "";
   const backdrop = typeof payload.backdrop === "string" ? payload.backdrop : pendingRewardedBackdrop;
   const reason = typeof payload.reason === "string" ? payload.reason.trim() : "";
+  const placement = typeof payload.placement === "string" ? payload.placement : "background_preview";
+  const adNetwork = typeof payload.adNetwork === "string" ? payload.adNetwork : "";
+  const revenueUSD = typeof payload.revenueUSD === "number" ? payload.revenueUSD : parsePriceUSD(payload.revenueUSD);
   if (status === "status") {
     nativeRewardedAdStatus = {
       ready: payload.ready === true,
@@ -2633,6 +2951,19 @@ function receiveNativeAdResult(payload = {}) {
     }
     requestNativeRewardedAdStatus();
     return;
+  }
+  if (status === "rewarded" && BACKDROP_IDS.includes(backdrop)) {
+    trackAnalyticsEvent("ad_completed", {
+      backgroundID: backdrop,
+      ownershipType: "temporary",
+      placement,
+      adNetwork,
+      revenueUSD,
+      properties: {
+        rewardType: "background_temp_access",
+        durationHours: REWARDED_BACKDROP_ACCESS_HOURS,
+      },
+    });
   }
   grantTemporaryBackdropAccess(backdrop, REWARDED_BACKDROP_ACCESS_HOURS);
   nativeRewardedAdStatus = {
@@ -2691,16 +3022,27 @@ function receiveNativePurchaseProducts(payload = {}) {
   const status = typeof payload.status === "string" ? payload.status : "";
   const reason = typeof payload.reason === "string" ? payload.reason.trim() : "";
   const prices = {};
+  const metadata = {};
   const products = Array.isArray(payload.products) ? payload.products : [];
   for (const product of products) {
     if (!product || typeof product !== "object") continue;
     const id = typeof product.id === "string" ? product.id : "";
     const price = typeof product.displayPrice === "string" ? product.displayPrice : "";
     if (id && price) prices[id] = price;
+    if (id) {
+      metadata[id] = {
+        priceUSD: parsePriceUSD(product.priceUSD ?? price),
+        currencyCode: typeof product.currencyCode === "string" ? product.currencyCode : "",
+      };
+    }
   }
   nativeProductPrices = {
     ...nativeProductPrices,
     ...prices,
+  };
+  nativeProductMetadata = {
+    ...nativeProductMetadata,
+    ...metadata,
   };
   applyOwnedProductIDs(Array.isArray(payload.ownedProductIDs) ? payload.ownedProductIDs : []);
   if (status === "unavailable") {
@@ -2715,7 +3057,9 @@ function receiveNativePurchaseResult(payload = {}) {
   const status = typeof payload.status === "string" ? payload.status : "";
   const productID = typeof payload.productID === "string" ? payload.productID : pendingPurchaseProductID;
   const reason = typeof payload.reason === "string" ? payload.reason.trim() : "";
+  const purchaseContext = pendingPurchaseContext || getProductTrackingContext(productID);
   pendingPurchaseProductID = "";
+  pendingPurchaseContext = null;
   const ownedProductIDs = Array.isArray(payload.ownedProductIDs) ? payload.ownedProductIDs : [];
   if (status === "success" || status === "restored") {
     clearPurchaseUiNotice();
@@ -2724,6 +3068,20 @@ function receiveNativePurchaseResult(payload = {}) {
     if (backdrop && isBackdropUnlocked(backdrop)) {
       selectBackdrop(backdrop);
       hideBackgroundPreview();
+    }
+    if (status === "success" && purchaseContext.productID) {
+      trackAnalyticsEvent("purchase_completed", {
+        backgroundID: purchaseContext.backgroundID,
+        ownershipType: getBackdropOwnershipType(PRODUCT_BACKDROP_IDS[productID] || state.backdrop),
+        productID: purchaseContext.productID,
+        productType: purchaseContext.productType,
+        priceUSD: purchaseContext.priceUSD,
+        properties: {
+          placement: "background_preview",
+          previewBackgroundID: purchaseContext.previewBackgroundID,
+          ownedProductIDs,
+        },
+      });
     }
     syncBackdropTiles();
     return;
@@ -2743,6 +3101,21 @@ function receiveNativePurchaseResult(payload = {}) {
   if (status === "unavailable" && backgroundPreviewPurchaseBtn) {
     backgroundPreviewPurchaseBtn.textContent = "Unavailable";
   }
+  if (purchaseContext.productID) {
+    trackAnalyticsEvent("purchase_failed", {
+      backgroundID: purchaseContext.backgroundID,
+      ownershipType: getBackdropOwnershipType(PRODUCT_BACKDROP_IDS[productID] || selectedLockedBackdrop || state.backdrop),
+      productID: purchaseContext.productID,
+      productType: purchaseContext.productType,
+      priceUSD: purchaseContext.priceUSD,
+      properties: {
+        placement: "background_preview",
+        previewBackgroundID: purchaseContext.previewBackgroundID,
+        status,
+        reason: message,
+      },
+    });
+  }
   setPurchaseUiNotice(message, true);
   setStatus(message, 3.2);
   syncBackdropTiles();
@@ -2757,6 +3130,18 @@ window.bloomwaveNativePurchases = {
 function purchaseProduct(productID, fallbackUnlock) {
   if (!productID) return false;
   if (!isPurchaseUiEnabled()) return false;
+  pendingPurchaseContext = getProductTrackingContext(productID, selectedLockedBackdrop || state.backdrop);
+  trackAnalyticsEvent("purchase_started", {
+    backgroundID: pendingPurchaseContext.backgroundID,
+    ownershipType: getBackdropOwnershipType(selectedLockedBackdrop || state.backdrop),
+    productID: pendingPurchaseContext.productID,
+    productType: pendingPurchaseContext.productType,
+    priceUSD: pendingPurchaseContext.priceUSD,
+    properties: {
+      placement: "background_preview",
+      previewBackgroundID: pendingPurchaseContext.previewBackgroundID || selectedLockedBackdrop || state.backdrop,
+    },
+  });
   if (hasNativePurchaseBridge()) {
     clearPurchaseUiNotice();
     pendingPurchaseProductID = productID;
@@ -2764,6 +3149,19 @@ function purchaseProduct(productID, fallbackUnlock) {
     return true;
   }
   fallbackUnlock();
+  trackAnalyticsEvent("purchase_completed", {
+    backgroundID: pendingPurchaseContext.backgroundID,
+    ownershipType: getBackdropOwnershipType(PRODUCT_BACKDROP_IDS[productID] || selectedLockedBackdrop || state.backdrop),
+    productID: pendingPurchaseContext.productID,
+    productType: pendingPurchaseContext.productType,
+    priceUSD: pendingPurchaseContext.priceUSD,
+    properties: {
+      placement: "background_preview",
+      previewBackgroundID: pendingPurchaseContext.previewBackgroundID || selectedLockedBackdrop || state.backdrop,
+      source: "fallback_unlock",
+    },
+  });
+  pendingPurchaseContext = null;
   return true;
 }
 
@@ -2802,7 +3200,16 @@ function watchAdForBackdrop(backdrop) {
   if (hasNativeAdBridge() && postNativeAd("showRewardedBackdropAd", {
     backdrop,
     hours: REWARDED_BACKDROP_ACCESS_HOURS,
+    placement: "background_preview",
   })) {
+    trackAnalyticsEvent("ad_started", {
+      backgroundID: backdrop,
+      ownershipType: getBackdropOwnershipType(backdrop),
+      placement: "background_preview",
+      properties: {
+        durationHours: REWARDED_BACKDROP_ACCESS_HOURS,
+      },
+    });
     return;
   }
   receiveNativeAdResult({
@@ -2935,6 +3342,13 @@ function addHarvest(units) {
     state.hype = clamp(state.hype + 8, 0, 100);
     state.harvestGoal = Math.min(28, state.harvestGoal + 1);
     setStatus(`Harvest crate packed x${state.crates}.`, 1.4);
+    trackAnalyticsEvent("crate_earned", {
+      properties: {
+        units,
+        crates: state.crates,
+        harvestGoal: state.harvestGoal,
+      },
+    });
   }
 }
 
@@ -3299,6 +3713,19 @@ function runOpeningFullBoardZap(x, y) {
     miss: false,
     blocked: false,
   });
+  trackAnalyticsEvent("harvest", {
+    properties: {
+      source: "opening_zap",
+      units: regularCount + (goldCount * 2),
+      hitCount,
+      regularCount,
+      goldCount,
+      arcCount: hitCount,
+      frenzy: nowFrenzy || goldCount > 0,
+      score: Math.max(0, Math.floor(state.score)),
+      crates: Math.max(0, Math.floor(state.crates)),
+    },
+  });
 
   return true;
 }
@@ -3474,6 +3901,25 @@ function resolveTapBurst(x, y) {
     miss,
     blocked,
   });
+  if (harvestRegular > 0 || harvestGold > 0 || harvestArc > 0) {
+    trackAnalyticsEvent("harvest", {
+      properties: {
+        source: "tap_burst",
+        units: harvestRegular + harvestArc + (harvestGold * 2),
+        hitCount,
+        regularCount: harvestRegular,
+        goldCount: harvestGold,
+        arcCount: harvestArc,
+        zapCount,
+        expandedZaps,
+        frenzy: audioFrenzy,
+        blocked,
+        miss,
+        score: Math.max(0, Math.floor(state.score)),
+        crates: Math.max(0, Math.floor(state.crates)),
+      },
+    });
+  }
 
   if (directHits >= 4) {
     addPulse(x + rand(-5, 5), y + rand(-5, 5), which, 0.75, 0.65);
@@ -5133,17 +5579,23 @@ window.addEventListener("touchend", safeUiAction("audio nudge", nudgeAudio), { p
 window.addEventListener("focus", safeUiAction("focus restore", () => {
   if (shareResumeGuardUntilMs) guardShareResume(500);
   if (lofi.started) nudgeAudio();
+  beginAnalyticsSession("focus");
 }));
 document.addEventListener("visibilitychange", safeUiAction("visibility restore", () => {
-  if (!document.hidden) {
+  if (document.hidden) {
+    endAnalyticsSession("background");
+  } else {
     if (shareResumeGuardUntilMs) guardShareResume(500);
     if (lofi.started) nudgeAudio();
+    beginAnalyticsSession("foreground");
   }
 }));
 window.addEventListener("pageshow", safeUiAction("page show", () => {
   if (shareResumeGuardUntilMs) guardShareResume(500);
+  beginAnalyticsSession("pageshow");
 }));
 window.addEventListener("pagehide", safeUiAction("page hide", () => {
+  endAnalyticsSession("pagehide");
   if (activeUsageSessionStartedAtMs) {
     finishActiveSession("pagehide");
   }
@@ -5420,6 +5872,7 @@ if (gameplayHudToggle) {
 
 function initializeGame() {
   try {
+    beginAnalyticsSession("launch");
     resizeGameSurface();
     if (bedSlots.length === 0) {
       rebuildBedSlots();
@@ -5441,6 +5894,7 @@ function initializeGame() {
     }
     syncCustomBackgroundAvailability();
     syncBackdropTiles();
+    trackFirstOpenIfNeeded();
     if (shouldSkipMenuForFirstStart()) {
       startSession();
     } else {

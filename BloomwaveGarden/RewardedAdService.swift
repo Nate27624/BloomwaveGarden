@@ -20,9 +20,13 @@ final class RewardedAdService: NSObject, FullScreenContentDelegate {
   private var retryTask: Task<Void, Never>?
   private var pendingReward: PendingReward?
   private var didEarnReward = false
+  private var lastAdNetwork = ""
+  private var lastPaidRevenueUSD: Double?
+  private var lastPaidRevenueCurrencyCode = ""
 
   private struct PendingReward {
     let backdrop: String
+    let placement: String
     let completion: ([String: Any]) -> Void
   }
 
@@ -85,12 +89,13 @@ final class RewardedAdService: NSObject, FullScreenContentDelegate {
     }
   }
 
-  func presentRewardedAd(backdrop: String, completion: @escaping ([String: Any]) -> Void) {
+  func presentRewardedAd(backdrop: String, placement: String, completion: @escaping ([String: Any]) -> Void) {
     guard isConfigured else {
       Self.log("Rewarded ad requested but AdMob is not configured")
       completion([
         "status": "unavailable",
         "backdrop": backdrop,
+        "placement": placement,
         "reason": "AdMob is not configured.",
       ])
       return
@@ -106,6 +111,7 @@ final class RewardedAdService: NSObject, FullScreenContentDelegate {
         completion([
           "status": "unavailable",
           "backdrop": backdrop,
+          "placement": placement,
           "reason": result.errorSummary ?? "Rewarded ad failed to load.",
         ])
         return
@@ -116,6 +122,7 @@ final class RewardedAdService: NSObject, FullScreenContentDelegate {
         completion([
           "status": "unavailable",
           "backdrop": backdrop,
+          "placement": placement,
           "reason": "No active view controller was available to present the ad.",
         ])
         return
@@ -123,9 +130,18 @@ final class RewardedAdService: NSObject, FullScreenContentDelegate {
 
       self.rewardedAd = nil
       self.lastAdErrorSummary = ""
-      self.pendingReward = PendingReward(backdrop: backdrop, completion: completion)
+      self.lastPaidRevenueUSD = nil
+      self.lastPaidRevenueCurrencyCode = ""
+      self.pendingReward = PendingReward(backdrop: backdrop, placement: placement, completion: completion)
       self.didEarnReward = false
+      self.lastAdNetwork = Self.describeAdNetwork(for: rewardedAd)
       rewardedAd.fullScreenContentDelegate = self
+      rewardedAd.paidEventHandler = { [weak self] adValue in
+        Task { @MainActor in
+          self?.lastPaidRevenueUSD = NSDecimalNumber(decimal: adValue.value.decimalValue).doubleValue / 1_000_000.0
+          self?.lastPaidRevenueCurrencyCode = adValue.currencyCode
+        }
+      }
       Self.log("Presenting rewarded ad")
       rewardedAd.present(from: presenter) { [weak self] in
         self?.didEarnReward = true
@@ -160,7 +176,17 @@ final class RewardedAdService: NSObject, FullScreenContentDelegate {
     var payload: [String: Any] = [
       "status": status,
       "backdrop": pendingReward.backdrop,
+      "placement": pendingReward.placement,
     ]
+    if !lastAdNetwork.isEmpty {
+      payload["adNetwork"] = lastAdNetwork
+    }
+    if let lastPaidRevenueUSD {
+      payload["revenueUSD"] = lastPaidRevenueUSD
+    }
+    if !lastPaidRevenueCurrencyCode.isEmpty {
+      payload["revenueCurrencyCode"] = lastPaidRevenueCurrencyCode
+    }
     if let reason, !reason.isEmpty {
       payload["reason"] = reason
     }
@@ -204,6 +230,7 @@ final class RewardedAdService: NSObject, FullScreenContentDelegate {
 
     if let loadedAd = result.ad {
       loadedAd.fullScreenContentDelegate = self
+      lastAdNetwork = Self.describeAdNetwork(for: loadedAd)
       rewardedAd = loadedAd
       lastAdErrorSummary = ""
       return (loadedAd, nil)
@@ -227,6 +254,15 @@ final class RewardedAdService: NSObject, FullScreenContentDelegate {
   private static func log(_ message: String) {
     logger.log("\(message, privacy: .public)")
     print("[Bloomwave][RewardedAd] \(message)")
+  }
+
+  private static func describeAdNetwork(for rewardedAd: RewardedAd) -> String {
+    let loadedNetwork = rewardedAd.responseInfo.loadedAdNetworkResponseInfo?.adSourceName?
+      .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    if !loadedNetwork.isEmpty {
+      return loadedNetwork
+    }
+    return "admob"
   }
 
   private func scheduleRetryIfNeeded() {

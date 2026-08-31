@@ -49,6 +49,8 @@ struct WebGameView: UIViewRepresentable {
         handleNativePurchase(event: event, payload: payload)
       case "nativeRewardedAd":
         handleNativeRewardedAd(event: event, payload: payload)
+      case "nativeAnalytics":
+        handleNativeAnalytics(event: event, payload: payload)
       default:
         break
       }
@@ -179,13 +181,17 @@ struct WebGameView: UIViewRepresentable {
         switch event {
         case "showRewardedBackdropAd":
           let backdrop = self.stringValue(payload["backdrop"])
+          let placement = self.stringValue(payload["placement"])
           guard !backdrop.isEmpty else {
             self.sendRewardedAdPayload([
               "status": "unavailable",
             ])
             return
           }
-          RewardedAdService.shared.presentRewardedAd(backdrop: backdrop) { result in
+          RewardedAdService.shared.presentRewardedAd(
+            backdrop: backdrop,
+            placement: placement.isEmpty ? "background_preview" : placement
+          ) { result in
             self.sendRewardedAdPayload(result)
           }
         case "getRewardedBackdropAdStatus":
@@ -196,6 +202,14 @@ struct WebGameView: UIViewRepresentable {
         default:
           break
         }
+      }
+    }
+
+    private func handleNativeAnalytics(event: String, payload: [String: Any]) {
+      guard event == "track" else { return }
+      guard let analyticsPayload = payload["payload"] as? [String: Any] else { return }
+      Task {
+        await SupabaseAnalyticsService.shared.track(payload: analyticsPayload)
       }
     }
 
@@ -338,14 +352,17 @@ struct WebGameView: UIViewRepresentable {
     }
   }
 
-  private let webAudioUnlockScript = """
-  (() => {
-    window.__BLOOM_NATIVE_AUDIO_ONLY = true;
-    window.__BLOOM_IAP_ENABLED = \(AppFeatures.inAppPurchasesEnabled ? "true" : "false");
-    window.__BLOOM_REWARDED_ADS_ENABLED = \(AppFeatures.rewardedAdsEnabled ? "true" : "false");
-    window.__BLOOM_LIFETIME_PASS_ONLY = \(AppFeatures.lifetimePassOnlyBackgroundStoreEnabled ? "true" : "false");
-  })();
-  """
+  private var webAudioUnlockScript: String {
+    """
+    (() => {
+      window.__BLOOM_NATIVE_AUDIO_ONLY = true;
+      window.__BLOOM_IAP_ENABLED = \(AppFeatures.inAppPurchasesEnabled ? "true" : "false");
+      window.__BLOOM_REWARDED_ADS_ENABLED = \(AppFeatures.rewardedAdsEnabled ? "true" : "false");
+      window.__BLOOM_LIFETIME_PASS_ONLY = \(AppFeatures.lifetimePassOnlyBackgroundStoreEnabled ? "true" : "false");
+      window.__BLOOM_ANALYTICS = \(analyticsBootstrapJSON);
+    })();
+    """
+  }
 
   private let interactionLockScript = """
   (() => {
@@ -364,6 +381,15 @@ struct WebGameView: UIViewRepresentable {
     document.addEventListener("touchmove", blockMultiTouch, { passive: false });
   })();
   """
+
+  private var analyticsBootstrapJSON: String {
+    guard JSONSerialization.isValidJSONObject(SupabaseAnalyticsConfig.bootstrapPayload),
+          let data = try? JSONSerialization.data(withJSONObject: SupabaseAnalyticsConfig.bootstrapPayload),
+          let json = String(data: data, encoding: .utf8) else {
+      return "{}"
+    }
+    return json
+  }
 
   func makeCoordinator() -> Coordinator {
     Coordinator()
@@ -395,6 +421,9 @@ struct WebGameView: UIViewRepresentable {
     }
     if AppFeatures.inAppPurchasesEnabled && AppFeatures.rewardedAdsEnabled && RewardedAdService.shared.isConfigured {
       userContentController.add(context.coordinator, name: "nativeRewardedAd")
+    }
+    if AppFeatures.supabaseAnalyticsEnabled {
+      userContentController.add(context.coordinator, name: "nativeAnalytics")
     }
     config.userContentController = userContentController
 
@@ -434,6 +463,7 @@ struct WebGameView: UIViewRepresentable {
     uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeShare")
     uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativePurchase")
     uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeRewardedAd")
+    uiView.configuration.userContentController.removeScriptMessageHandler(forName: "nativeAnalytics")
     coordinator.webView = nil
   }
 

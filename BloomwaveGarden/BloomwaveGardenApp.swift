@@ -11,6 +11,12 @@ enum AppFeatures {
     forInfoDictionaryKey: "BloomwaveLifetimePassOnlyBackgroundStoreEnabled",
     defaultValue: false
   )
+  static let supabaseAnalyticsEnabled = boolValue(
+    forInfoDictionaryKey: "BloomwaveSupabaseAnalyticsEnabled",
+    defaultValue: false
+  )
+  static let supabaseURL = stringValue(forInfoDictionaryKey: "BloomwaveSupabaseURL")
+  static let supabaseAnonKey = stringValue(forInfoDictionaryKey: "BloomwaveSupabaseAnonKey")
 
   private static func boolValue(forInfoDictionaryKey key: String, defaultValue: Bool) -> Bool {
     let rawValue = Bundle.main.object(forInfoDictionaryKey: key)
@@ -31,6 +37,15 @@ enum AppFeatures {
       }
     }
     return defaultValue
+  }
+
+  private static func stringValue(forInfoDictionaryKey key: String) -> String {
+    let rawValue = Bundle.main.object(forInfoDictionaryKey: key) as? String ?? ""
+    let trimmedValue = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+    if trimmedValue.isEmpty || trimmedValue.hasPrefix("$(") {
+      return ""
+    }
+    return trimmedValue
   }
 }
 
@@ -428,6 +443,8 @@ final class PurchaseService {
           "id": product.id,
           "displayName": product.displayName,
           "displayPrice": product.displayPrice,
+          "priceUSD": NSDecimalNumber(decimal: product.price).doubleValue,
+          "currencyCode": product.priceFormatStyle.currencyCode,
         ]
       },
       "ownedProductIDs": ownedProductIDs,
@@ -464,8 +481,32 @@ private final class AppDelegate: NSObject, UIApplicationDelegate {
       if AppFeatures.rewardedAdsEnabled {
         RewardedAdService.shared.configureIfNeeded()
       }
+      if AppFeatures.supabaseAnalyticsEnabled {
+        await SupabaseAnalyticsService.shared.flush()
+      }
     }
     return true
+  }
+
+  func applicationDidBecomeActive(_ application: UIApplication) {
+    guard AppFeatures.supabaseAnalyticsEnabled else { return }
+    Task {
+      await SupabaseAnalyticsService.shared.flush()
+    }
+  }
+
+  func applicationDidEnterBackground(_ application: UIApplication) {
+    guard AppFeatures.supabaseAnalyticsEnabled else { return }
+    Task {
+      await SupabaseAnalyticsService.shared.flush()
+    }
+  }
+
+  func applicationWillTerminate(_ application: UIApplication) {
+    guard AppFeatures.supabaseAnalyticsEnabled else { return }
+    Task {
+      await SupabaseAnalyticsService.shared.flush()
+    }
   }
 }
 
